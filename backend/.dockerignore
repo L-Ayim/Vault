@@ -1,0 +1,15 @@
+# Ignore Python virtual environments
+.venv
+env
+venv
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.log
