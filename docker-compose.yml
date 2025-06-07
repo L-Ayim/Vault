@@ -32,7 +32,7 @@ services:
       MYSQL_DATABASE: vault_db
       MYSQL_USER: vault_user
       MYSQL_PASSWORD: s3cr3tpass
-      # Add DJANGO_SECRET_KEY and any other required vars in backend/.env
+      # DJANGO_SECRET_KEY, etc. come from backend/.env
     ports:
       - "8000:8000"
     volumes:
@@ -47,9 +47,9 @@ services:
     depends_on:
       - vault_backend
     environment:
-      # Tell Vite where to find GraphQL (inside Docker Compose)
-      VITE_GRAPHQL_URL: http://vault_backend:8000/graphql/
-      # For reliable file watching in Docker
+      # Point at your host’s Django API instead of the internal Docker hostname
+      VITE_GRAPHQL_URL: http://localhost:8000/graphql/
+      # Keep polling for file‐watching in Docker
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "5173:5173"

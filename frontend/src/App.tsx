@@ -8,6 +8,7 @@ import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import StoragePage from "./pages/StoragePage";
 import MapPage from "./pages/MapPage";
+import ChatPage from "./pages/ChatPage";             // ← import this
 import SettingsPage from "./pages/SettingsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -44,6 +45,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"                              // ← your new route
+          element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />
