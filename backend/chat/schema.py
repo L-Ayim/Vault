@@ -98,19 +98,24 @@ class JoinNodeChannel(graphene.Mutation):
         node = Node.objects.filter(pk=node_id).first()
         if not node:
             raise GraphQLError("Node not found.")
-        # reuse our Node-share logic:
+
+        # reuse our Node-share logic
         from graph.schema import NodeType
-        NodeType.resolve_shares  # just import
-        NodeType.resolve_files   # ...
-        # Here we just enforce membership by owner/shares:
-        from .schema import GraphQuery
-        can_read = node.owner_id == user.id or node.shares.filter(
-            Q(is_public=True, permission='R') |
-            Q(shared_with_user=user) |
-            Q(shared_with_group__in=user.group_memberships.values_list("group",flat=True))
-        ).exists()
+        NodeType.resolve_shares
+        NodeType.resolve_files
+
+        # enforce membership by owner/shares
+        can_read = (
+            node.owner_id == user.id or
+            node.shares.filter(
+                Q(is_public=True, permission="R") |
+                Q(shared_with_user=user) |
+                Q(shared_with_group__in=user.group_memberships.values_list("group", flat=True))
+            ).exists()
+        )
         if not can_read:
             raise GraphQLError("No read access on that node.")
+
         ch, _ = Channel.objects.get_or_create(
             channel_type=Channel.NODE,
             node=node
@@ -134,12 +139,14 @@ class SendMessage(graphene.Mutation):
         ch = Channel.objects.filter(pk=channel_id).first()
         if not ch or not ch.memberships.filter(user=user).exists():
             raise GraphQLError("No access to that channel.")
+
         version = None
         if upload:
-            # treat upload as a brand-new Version in a File owned by user
+            # treat upload as a new Version in a File owned by user
             from files.models import File, Version
             f = File.objects.create(owner=user, name=upload.name, upload=upload)
             version = Version.objects.create(file=f, upload=upload)
+
         msg = Message.objects.create(
             channel=ch,
             sender=user,
@@ -153,3 +160,7 @@ class ChatMutation(graphene.ObjectType):
     create_direct_channel = CreateDirectChannel.Field()
     join_node_channel     = JoinNodeChannel.Field()
     send_message          = SendMessage.Field()
+
+
+# Finally, wire up the schema
+schema = graphene.Schema(query=ChatQuery, mutation=ChatMutation)
