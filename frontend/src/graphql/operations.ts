@@ -379,7 +379,7 @@ export const MUTATION_SHARE_FILE_WITH_GROUP = gql`
 
 // 8) Make a file publicly readable
 export const MUTATION_MAKE_FILE_PUBLIC = gql`
-  mutation MakeFilePublic($fileId: ID!, $permission: String = "READ") {
+  mutation MakeFilePublic($fileId: ID!, $permission: String = "R") {
     makeFilePublic(fileId: $fileId, permission: $permission) {
       share {
         id
@@ -835,7 +835,7 @@ export const MUTATION_SHARE_NODE_WITH_GROUP = gql`
 
 // 16) Make a node publicly readable
 export const MUTATION_MAKE_NODE_PUBLIC = gql`
-  mutation MakeNodePublic($nodeId: ID!, $permission: String = "READ") {
+  mutation MakeNodePublic($nodeId: ID!, $permission: String = "R") {
     makeNodePublic(nodeId: $nodeId, permission: $permission) {
       share {
         id

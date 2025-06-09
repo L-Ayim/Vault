@@ -1,5 +1,3 @@
-# graph/schema.py
-
 import graphene
 from graphql import GraphQLError
 from graphene_django import DjangoObjectType
@@ -9,7 +7,6 @@ from .models import Node, NodeFile, Edge, NodeShare
 from accounts.schema import UserType
 from files.schema import FileType
 from accounts.models import Group
-
 
 # ── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,12 +49,26 @@ class NodeType(DjangoObjectType):
 
     def resolve_shares(self, info):
         user = info.context.user
-        if user.is_anonymous or self.owner_id != user.id:
+        if user.is_anonymous:
+            raise GraphQLError("Authentication required.")
+
+        # Owner always allowed
+        if self.owner_id == user.id:
+            return NodeShare.objects.filter(node=self)
+
+        # Otherwise, only allow if this user has a share on the node (R or W)
+        has_access = NodeShare.objects.filter(
+            node=self,
+            shared_with_user=user,
+            permission__in=[NodeShare.READ, NodeShare.WRITE]
+        ).exists()
+        if not has_access:
             raise GraphQLError("Permission denied.")
+
+        # They’re in the share list → return _all_ shares on the node
         return NodeShare.objects.filter(node=self)
 
-
-# ── Query ────────────────────────────────────────────────────────────────────
+# ── Queries ──────────────────────────────────────────────────────────────────
 
 class GraphQuery(graphene.ObjectType):
     ping         = graphene.String()
@@ -65,24 +76,24 @@ class GraphQuery(graphene.ObjectType):
         NodeType,
         limit=graphene.Int(default_value=20),
         offset=graphene.Int(default_value=0),
-        name_contains=graphene.String()
+        name_contains=graphene.String(),
     )
     node_files   = graphene.List(
         NodeFileType,
         node_id=graphene.ID(required=True),
         limit=graphene.Int(default_value=20),
-        offset=graphene.Int(default_value=0)
+        offset=graphene.Int(default_value=0),
     )
     node_edges   = graphene.List(
         EdgeType,
         node_id=graphene.ID(required=True),
         limit=graphene.Int(default_value=20),
-        offset=graphene.Int(default_value=0)
+        offset=graphene.Int(default_value=0),
     )
     public_nodes = graphene.List(
         NodeType,
         limit=graphene.Int(default_value=20),
-        offset=graphene.Int(default_value=0)
+        offset=graphene.Int(default_value=0),
     )
 
     def resolve_ping(self, info):
@@ -92,15 +103,21 @@ class GraphQuery(graphene.ObjectType):
         user = info.context.user
         if user.is_anonymous:
             raise GraphQLError("Authentication required.")
+
+        # Allow both READ and WRITE permissions
+        allowed_perms = [NodeShare.READ, NodeShare.WRITE]
         groups = user.group_memberships.values_list("group", flat=True)
+
         qs = Node.objects.filter(
             Q(owner=user)
-            | Q(shares__is_public=True, shares__permission=NodeShare.READ)
-            | Q(shares__shared_with_user=user, shares__permission=NodeShare.READ)
-            | Q(shares__shared_with_group__in=groups, shares__permission=NodeShare.READ)
+            | Q(shares__is_public=True, shares__permission__in=allowed_perms)
+            | Q(shares__shared_with_user=user, shares__permission__in=allowed_perms)
+            | Q(shares__shared_with_group__in=groups, shares__permission__in=allowed_perms)
         ).distinct()
+
         if name_contains:
             qs = qs.filter(name__icontains=name_contains)
+
         return qs[offset : offset + limit]
 
     def resolve_node_files(self, info, node_id, limit, offset):
@@ -193,7 +210,7 @@ class AddFileToNode(graphene.Mutation):
         nf, _ = NodeFile.objects.update_or_create(
             node=node,
             file_id=file_id,
-            defaults={"note": note}
+            defaults={"note": note},
         )
         return AddFileToNode(node_file=nf)
 
@@ -207,7 +224,9 @@ class RemoveFileFromNode(graphene.Mutation):
 
     def mutate(self, info, node_id, file_id):
         user = info.context.user
-        nf = NodeFile.objects.filter(node_id=node_id, file_id=file_id, node__owner=user).first()
+        nf = NodeFile.objects.filter(
+            node_id=node_id, file_id=file_id, node__owner=user
+        ).first()
         if not nf:
             raise GraphQLError("Permission denied or not found.")
         nf.delete()
@@ -224,7 +243,9 @@ class MoveFileBetweenNodes(graphene.Mutation):
 
     def mutate(self, info, from_node, to_node, file_id):
         user = info.context.user
-        rf = NodeFile.objects.filter(node_id=from_node, file_id=file_id, node__owner=user).first()
+        rf = NodeFile.objects.filter(
+            node_id=from_node, file_id=file_id, node__owner=user
+        ).first()
         if not rf:
             raise GraphQLError("Permission denied on source.")
         rf.node_id = to_node
@@ -248,7 +269,7 @@ class CreateEdge(graphene.Mutation):
         edge, _ = Edge.objects.get_or_create(
             node_a_id=min(node_a_id, node_b_id),
             node_b_id=max(node_a_id, node_b_id),
-            defaults={"label": label}
+            defaults={"label": label},
         )
         return CreateEdge(edge=edge)
 
@@ -282,66 +303,11 @@ class ShareNodeWithUser(graphene.Mutation):
         if not node:
             raise GraphQLError("Only owner can share.")
         share, _ = NodeShare.objects.update_or_create(
-            node=node, shared_with_user_id=user_id,
-            defaults={"permission": permission, "is_public": False}
+            node=node,
+            shared_with_user_id=user_id,
+            defaults={"permission": permission, "is_public": False},
         )
         return ShareNodeWithUser(share=share)
-
-
-class ShareNodeWithGroup(graphene.Mutation):
-    share = graphene.Field(NodeShareType)
-
-    class Arguments:
-        node_id    = graphene.ID(required=True)
-        group_id   = graphene.ID(required=True)
-        permission = graphene.String(required=True)
-
-    def mutate(self, info, node_id, group_id, permission):
-        user = info.context.user
-        node = Node.objects.filter(pk=node_id, owner=user).first()
-        if not node:
-            raise GraphQLError("Only owner can share.")
-        share, _ = NodeShare.objects.update_or_create(
-            node=node, shared_with_group_id=group_id,
-            defaults={"permission": permission, "is_public": False}
-        )
-        return ShareNodeWithGroup(share=share)
-
-
-class MakeNodePublic(graphene.Mutation):
-    share = graphene.Field(NodeShareType)
-
-    class Arguments:
-        node_id    = graphene.ID(required=True)
-        permission = graphene.String(default_value=NodeShare.READ)
-
-    def mutate(self, info, node_id, permission):
-        user = info.context.user
-        node = Node.objects.filter(pk=node_id, owner=user).first()
-        if not node:
-            raise GraphQLError("Only owner can share.")
-        share, _ = NodeShare.objects.update_or_create(
-            node=node, is_public=True,
-            defaults={"permission": permission}
-        )
-        return MakeNodePublic(share=share)
-
-
-class UpdateNodeShare(graphene.Mutation):
-    share = graphene.Field(NodeShareType)
-
-    class Arguments:
-        share_id   = graphene.ID(required=True)
-        permission = graphene.String(required=True)
-
-    def mutate(self, info, share_id, permission):
-        user = info.context.user
-        share = NodeShare.objects.filter(pk=share_id, node__owner=user).first()
-        if not share:
-            raise GraphQLError("Share not found or you are not the owner.")
-        share.permission = permission
-        share.save()
-        return UpdateNodeShare(share=share)
 
 
 class RevokeNodeShare(graphene.Mutation):
@@ -359,21 +325,25 @@ class RevokeNodeShare(graphene.Mutation):
         return RevokeNodeShare(ok=True)
 
 
+# ── Root Mutation Container ──────────────────────────────────────────────────
+
 class GraphMutation(graphene.ObjectType):
-    noop                   = graphene.Boolean()
-    createNode             = CreateNode.Field()
-    renameNode             = RenameNode.Field()
-    deleteNode             = DeleteNode.Field()
-    addFileToNode          = AddFileToNode.Field()
-    removeFileFromNode     = RemoveFileFromNode.Field()
-    moveFileBetweenNodes   = MoveFileBetweenNodes.Field()
-    createEdge             = CreateEdge.Field()
-    deleteEdge             = DeleteEdge.Field()
-    shareNodeWithUser      = ShareNodeWithUser.Field()
-    shareNodeWithGroup     = ShareNodeWithGroup.Field()
-    makeNodePublic         = MakeNodePublic.Field()
-    updateNodeShare        = UpdateNodeShare.Field()
-    revokeNodeShare        = RevokeNodeShare.Field()
+    createNode          = CreateNode.Field()
+    renameNode          = RenameNode.Field()
+    deleteNode          = DeleteNode.Field()
+    addFileToNode       = AddFileToNode.Field()
+    removeFileFromNode  = RemoveFileFromNode.Field()
+    moveFileBetweenNodes= MoveFileBetweenNodes.Field()
+    createEdge          = CreateEdge.Field()
+    deleteEdge          = DeleteEdge.Field()
+    shareNodeWithUser   = ShareNodeWithUser.Field()
+    revokeNodeShare     = RevokeNodeShare.Field()
+
+    # no-op field to keep schema happy
+    noop = graphene.Boolean()
 
     def resolve_noop(self, info):
         return True
+
+
+schema = graphene.Schema(query=GraphQuery, mutation=GraphMutation)

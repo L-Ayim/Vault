@@ -1,7 +1,13 @@
 // src/pages/MapPage.tsx
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  DragEvent,
+} from "react";
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -21,6 +27,7 @@ import {
   QUERY_MY_NODES,
   QUERY_MY_FILES,
   QUERY_NODE_FILES,
+  QUERY_FRIENDS,
   MUTATION_CREATE_NODE,
   MUTATION_RENAME_NODE,
   MUTATION_DELETE_NODE,
@@ -30,6 +37,9 @@ import {
   MUTATION_ADD_FILE_TO_NODE,
   MUTATION_REMOVE_FILE_FROM_NODE,
   MUTATION_DELETE_FILE,
+  MUTATION_SHARE_NODE_WITH_USER,
+  MUTATION_REVOKE_NODE_SHARE,
+  MUTATION_CREATE_DIRECT_CHANNEL,
 } from "../graphql/operations";
 import {
   Plus,
@@ -37,10 +47,15 @@ import {
   FileText,
   Download,
   Trash2,
-  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Pen,
+  MessageCircle,
 } from "lucide-react";
 import "reactflow/dist/style.css";
 import { useAuth } from "../auth/AuthContext";
+import ChatBox from "../components/ChatBox"; // your reusable chat overlay
 
 interface FileOnNode {
   note: string;
@@ -54,6 +69,11 @@ interface EdgeOnNode {
   label: string | null;
   createdAt: string;
 }
+interface NodeShare {
+  id: string;
+  permission: "R" | "W";
+  sharedWithUser: { id: string; username: string };
+}
 interface NodeData {
   id: string;
   name: string;
@@ -62,116 +82,153 @@ interface NodeData {
   owner: { id: string; username: string };
   files: FileOnNode[];
   edges: EdgeOnNode[];
-  shares: any[];
+  shares: NodeShare[];
 }
 interface QueryMyNodesResult { myNodes: NodeData[] }
-interface QueryMyFilesResult { myFiles: { id: string; name: string; downloadUrl: string }[] }
+interface QueryMyFilesResult {
+  myFiles: { id: string; name: string; downloadUrl: string }[];
+}
+interface Friend { id: string; username: string }
 
 export default function MapPage() {
-  // Page title & auth
-  useEffect(() => { document.title = "Map"; }, []);
   const { user, logout } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Fetch nodes & files
+  // chat overlay
+  const [chatChannel, setChatChannel] = useState<string | null>(null);
+  const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
+    onCompleted: res => setChatChannel(res.createDirectChannel.channel.id),
+  });
+
+  // friends
+  const {
+    data: friendsData,
+    loading: friendsLoading,
+    error: friendsError,
+  } = useQuery<{ friends: Friend[] }>(QUERY_FRIENDS, {
+    variables: { limit: 20, offset: 0 },
+    fetchPolicy: "cache-and-network",
+    pollInterval: 1000,
+  });
+
+  // per-friend R/W toggle
+  const [friendPermMap, setFriendPermMap] = useState<Record<string, "R" | "W">>({});
+  useEffect(() => {
+    if (friendsData?.friends) {
+      const m: Record<string, "R" | "W"> = {};
+      friendsData.friends.forEach(f => { m[f.id] = "R" });
+      setFriendPermMap(m);
+    }
+  }, [friendsData]);
+
+  // nodes + files
   const { data: nodesData, loading: nodesLoading, error: nodesError } =
-    useQuery<QueryMyNodesResult>(QUERY_MY_NODES, { fetchPolicy: "network-only" });
+    useQuery<QueryMyNodesResult>(QUERY_MY_NODES, {
+      fetchPolicy: "network-only",
+      pollInterval: 1000,
+    });
   const {
     data: filesData,
     loading: filesLoading,
     refetch: refetchFiles,
   } = useQuery<QueryMyFilesResult>(QUERY_MY_FILES);
 
-  // Mutations
+  // mutations
   const [uploadFile]    = useMutation(MUTATION_UPLOAD_FILE);
   const [addFileToNode] = useMutation(MUTATION_ADD_FILE_TO_NODE);
-  const [removeNodeFile]= useMutation(MUTATION_REMOVE_FILE_FROM_NODE);
+  const [removeFile]    = useMutation(MUTATION_REMOVE_FILE_FROM_NODE);
   const [deleteFile]    = useMutation(MUTATION_DELETE_FILE);
   const [createNode]    = useMutation(MUTATION_CREATE_NODE, {
     onCompleted: res => {
       const n = res.createNode.node;
       setNodes(nds => [
         ...nds,
-        { id: n.id, type: "custom", position: { x:200,y:200 }, data:{ name:n.name, description:"", files:[] } }
+        { id: n.id, type: "custom", position: { x:200,y:200 },
+          data: { id:n.id, name:n.name, description:"", files:[], shares:[] }
+        }
       ]);
       savePosition(n.id,200,200);
     }
   });
-  const [renameNode] = useMutation(MUTATION_RENAME_NODE);
-  const [deleteNode] = useMutation(MUTATION_DELETE_NODE);
-  const [createEdge] = useMutation(MUTATION_CREATE_EDGE);
-  const [deleteEdge] = useMutation(MUTATION_DELETE_EDGE);
+  const [renameNode]  = useMutation(MUTATION_RENAME_NODE);
+  const [deleteNode]  = useMutation(MUTATION_DELETE_NODE);
+  const [createEdge]  = useMutation(MUTATION_CREATE_EDGE);
+  const [deleteEdge]  = useMutation(MUTATION_DELETE_EDGE);
+  const [shareNode]   = useMutation(MUTATION_SHARE_NODE_WITH_USER);
+  const [revokeShare] = useMutation(MUTATION_REVOKE_NODE_SHARE);
 
-  // Sidebar upload/delete status
+  // sidebar upload / delete
   const [sidebarUploading, setSidebarUploading] = useState(false);
   const [removingSidebarId, setRemovingSidebarId] = useState<string|null>(null);
-
-  // Sidebar OS-drop handler
-  const handleSidebarDrop = useCallback(async (e: React.DragEvent) => {
+  const handleSidebarDrop = useCallback(async (e: DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
-    if (files.length) {
-      setSidebarUploading(true);
-      for (const file of files) {
-        await uploadFile({ variables: { name: file.name, upload: file } });
-      }
-      await refetchFiles();
-      setSidebarUploading(false);
-    }
-  }, [uploadFile, refetchFiles]);
-
-  // Delete from storage
-  const handleSidebarDelete = async (fileId: string) => {
+    if (!files.length) return;
+    setSidebarUploading(true);
+    for (const f of files) await uploadFile({ variables:{ name:f.name, upload:f } });
+    await refetchFiles();
+    setSidebarUploading(false);
+  },[uploadFile,refetchFiles]);
+  const handleSidebarDelete = async (fileId:string) => {
     setRemovingSidebarId(fileId);
-    await deleteFile({ variables: { fileId } });
+    await deleteFile({ variables:{ fileId } });
     await refetchFiles();
     setRemovingSidebarId(null);
   };
 
-  // Position helpers
-  const getSavedPositions = (): Record<string,{x:number,y:number}> => {
-    try { return JSON.parse(localStorage.getItem("node-positions")||"{}"); }
-    catch { return {}; }
+  // persist positions
+  const getSavedPositions = () => {
+    try { return JSON.parse(localStorage.getItem("node-positions")||"{}") }
+    catch { return {} }
   };
   const savePosition = (id:string,x:number,y:number) => {
-    const all = getSavedPositions(); all[id] = {x,y};
-    localStorage.setItem("node-positions", JSON.stringify(all));
+    const all = getSavedPositions();
+    all[id] = { x,y };
+    localStorage.setItem("node-positions",JSON.stringify(all));
   };
 
-  // Build ReactFlow nodes & edges
-  const graphNodes: Node[] = useMemo(() => {
+  // build graph
+  const graphNodes:Node[] = useMemo(() => {
     if (!nodesData?.myNodes) return [];
     const saved = getSavedPositions();
     return nodesData.myNodes.map((n,idx) => {
-      const defX = 50 + (idx%5)*200, defY = 50 + Math.floor(idx/5)*200;
-      const pos = saved[n.id] ?? { x:defX, y:defY };
+      const defX = 50 + (idx%5)*200;
+      const defY = 50 + Math.floor(idx/5)*200;
+      const pos = saved[n.id] ?? { x:defX,y:defY };
       return {
         id: n.id,
         type: "custom",
         position: pos,
-        data: { name: n.name, description: n.description, files: n.files.map(fn=>fn.file.name) },
+        data: {
+          id: n.id,
+          name: n.name,
+          description: n.description,
+          files: n.files.map(fn=>fn.file.name),
+          shares: n.shares,
+        },
       };
     });
   }, [nodesData]);
-
-  const graphEdges: Edge[] = useMemo(() => {
+  const graphEdges:Edge[] = useMemo(() => {
     if (!nodesData?.myNodes) return [];
-    const seen = new Set<string>(), out: Edge[] = [];
+    const seen = new Set<string>();
+    const out:Edge[] = [];
     nodesData.myNodes.forEach(node =>
       node.edges.forEach(e => {
-        if (e.nodeA.id === node.id && !seen.has(e.id)) {
+        if (e.nodeA.id===node.id && !seen.has(e.id)) {
           seen.add(e.id);
           out.push({
             id: e.id,
             source: e.nodeA.id,
             target: e.nodeB.id,
-            label: e.label || "",
-            style: { stroke: "#F97316", strokeWidth: 2 },
+            label: e.label||"",
+            style: { stroke:"#F97316",strokeWidth:2 }
           });
         }
       })
     );
     return out;
-  }, [nodesData]);
+  },[nodesData]);
 
   // ReactFlow state
   const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
@@ -181,35 +238,34 @@ export default function MapPage() {
       setNodes(graphNodes);
       setEdges(graphEdges);
     }
-  }, [nodesData, graphNodes, graphEdges, setNodes, setEdges]);
+  },[nodesData,graphNodes,graphEdges]);
 
-  // Selection & handlers
   const [selected, setSelected] = useState<{nodes:Node[];edges:Edge[]}>({nodes:[],edges:[]});
   const onSelectionChange = (s:{nodes:Node[];edges:Edge[]}) => setSelected(s);
 
+  // add / delete
   const handleAddNode = () => createNode({ variables:{ name:"New Node", description:"" }});
   const handleDeleteSelected = () => {
-    selected.nodes.forEach(n =>
+    selected.nodes.forEach(n=>
       deleteNode({
         variables:{ nodeId:n.id },
         onCompleted:()=>{
           setNodes(nds=>nds.filter(x=>x.id!==n.id));
           setEdges(eds=>eds.filter(e=>e.source!==n.id&&e.target!==n.id));
           const all=getSavedPositions(); delete all[n.id];
-          localStorage.setItem("node-positions", JSON.stringify(all));
+          localStorage.setItem("node-positions",JSON.stringify(all));
         }
       })
     );
-    selected.edges.forEach(e =>
+    selected.edges.forEach(e=>
       deleteEdge({
         variables:{ edgeId:e.id },
         onCompleted:()=>setEdges(eds=>eds.filter(x=>x.id!==e.id))
       })
     );
   };
-
   const handleConnect = useCallback((c:Connection)=>{
-    const temp = `t-${c.source}-${c.target}-${Date.now()}`;
+    const temp = `t-${c.source}-${c.target}-${Date.now()}` as const;
     const optim:Edge = { id:temp, source:c.source!, target:c.target!, style:{ stroke:"#F97316",strokeWidth:2 } };
     setEdges(es=>addEdge(optim,es));
     createEdge({
@@ -225,110 +281,114 @@ export default function MapPage() {
       onError:()=>setEdges(es=>es.filter(e=>e.id!==temp))
     });
   },[createEdge]);
-
-  const handleEdgeClick = (ev:React.MouseEvent, edge:Edge) => {
+  const handleEdgeClick = (ev:React.MouseEvent,edge:Edge)=>{
     ev.stopPropagation();
     deleteEdge({
       variables:{ edgeId:edge.id },
       onCompleted:()=>setEdges(eds=>eds.filter(x=>x.id!==edge.id))
     });
   };
-
-  const commitRename = (nodeId:string,nm:string,desc:string) => {
+  const commitRename = (nodeId:string,nm:string,desc:string)=>{
     renameNode({
       variables:{ nodeId, name:nm, description:desc },
       onCompleted:res=>{
-        const u = res.renameNode.node;
-        setNodes(nds=>nds.map(n=>
-          n.id===u.id
-            ? { ...n, data:{ ...n.data, name:u.name, description:u.description } }
-            : n
-        ));
+        const u=res.renameNode.node;
+        setNodes(nds=>
+          nds.map(n=>
+            n.id===u.id
+              ? { ...n, data:{ ...n.data, name:u.name, description:u.description } }
+              : n
+          )
+        );
       }
     });
   };
-
   const onNodeDragStop:NodeDragHandler = (_e,node)=>{
     savePosition(node.id,node.position.x,node.position.y);
     setNodes(nds=>nds.map(n=>n.id===node.id?{...n,position:node.position}:n));
   };
 
-  // CustomNode
-  function CustomNode({ id, data, selected }: NodeProps<{name:string;description:string;files:string[]}>) {
+  // custom node
+  function CustomNode({ id, data, selected }: NodeProps<{
+    id:string; name:string; description:string; files:string[]; shares:NodeShare[]
+  }>) {
     const [nm, setNm] = useState(data.name);
     const [desc, setDesc] = useState(data.description);
-    const { data: nfData, refetch: refetchNodeFiles } = useQuery(QUERY_NODE_FILES, { variables:{ nodeId:id }});
     const [dropping, setDropping] = useState(false);
-    const [removingId, setRemovingId] = useState<string|null>(null);
 
-    // sync files
-    useEffect(()=>{
-      if(nfData?.nodeFiles){
+    useEffect(() => {
+      setNm(data.name);
+      setDesc(data.description);
+    }, [data.name, data.description]);
+
+    const { data: nfData, refetch: refetchNodeFiles } = useQuery(
+      QUERY_NODE_FILES,
+      { variables:{ nodeId:id } }
+    );
+
+    useEffect(() => {
+      if (nfData?.nodeFiles) {
         data.files = nfData.nodeFiles.map((nf:any)=>nf.file.name);
       }
-    },[nfData]);
+    }, [nfData]);
 
-    const onDragOver = (e:React.DragEvent) => e.preventDefault();
-    const onDrop = useCallback(async (e:React.DragEvent)=>{
+    const hs: React.CSSProperties = {
+      background:"#F97316", width:14, height:14, borderRadius:7, cursor:"pointer"
+    };
+
+    const onDragOver = (e:React.DragEvent)=>e.preventDefault();
+    const onDrop = useCallback(async(e:React.DragEvent)=>{
       e.preventDefault();
       setDropping(true);
-
       const dt = e.dataTransfer;
       const js = dt.getData("application/json");
-      if(js){
-        const { type, fileId } = JSON.parse(js);
-        if(type==="vault-file"){
-          await addFileToNode({ variables:{ nodeId:id, fileId }});
+      if (js) {
+        const obj = JSON.parse(js);
+        if (obj.type==="vault-friend") {
+          await shareNode({ variables:{
+            nodeId:id, userId:obj.friendId, permission:obj.permission
+          }});
+          await refetchNodeFiles();
+          setDropping(false);
+          return;
+        }
+        if (obj.type==="vault-file") {
+          await addFileToNode({ variables:{ nodeId:id, fileId:obj.fileId }});
           await refetchNodeFiles();
           setDropping(false);
           return;
         }
       }
-
-      if(dt.files.length){
-        for(let i=0;i<dt.files.length;i++){
-          const f = dt.files[i];
-          const res = await uploadFile({ variables:{ name:f.name, upload:f }});
-          await addFileToNode({ variables:{ nodeId:id, fileId:res.data.uploadFile.file.id }});
+      // fallback file drop
+      if (dt.files.length) {
+        for (const f of Array.from(dt.files)) {
+          const r = await uploadFile({ variables:{ name:f.name, upload:f } });
+          await addFileToNode({ variables:{ nodeId:id, fileId:r.data.uploadFile.file.id }});
         }
-        await Promise.all([refetchNodeFiles(), refetchFiles()]);
+        await Promise.all([refetchNodeFiles(),refetchFiles()]);
       }
-
       setDropping(false);
-    },[id,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
+    },[id,shareNode,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
 
-    const handleBlurOrEnter = (e:any, isArea=false) => {
-      if(!isArea && e.key && e.key!=="Enter") return;
-      if(nm!==data.name||desc!==data.description) commitRename(id,nm,desc);
+    const handleBlurOrEnter = (e:any,isArea=false)=>{
+      if (!isArea && e.key && e.key!=="Enter") return;
+      if (nm!==data.name||desc!==data.description) commitRename(id,nm,desc);
     };
-
-    const handleRemove = async (fname:string) => {
-      setRemovingId(fname);
-      const match = nfData.nodeFiles.find((nf:any)=>nf.file.name===fname);
-      if(match){
-        await removeNodeFile({ variables:{ nodeId:id, fileId:match.file.id }});
-        await refetchNodeFiles();
-      }
-      setRemovingId(null);
-    };
-
-    const hs:React.CSSProperties = { background:"#F97316", width:14, height:14, borderRadius:"50%", cursor:"pointer" };
 
     return (
       <div
         onDragOver={onDragOver}
         onDrop={onDrop}
-        className={`bg-neutral-800/75 backdrop-blur-sm rounded-xl p-4 w-48 select-none ${selected?"ring-2 ring-orange-500":""}`}
-        style={{ fontFamily:"'Segoe UI',sans-serif", color:"#F1F5F9"}}
+        className={`relative bg-neutral-800/75 rounded-xl p-4 w-48 select-none ${
+          selected? "ring-2 ring-orange-500":""
+        }`}
+        style={{ fontFamily:"'Segoe UI',sans-serif", color:"#F1F5F9" }}
         onMouseDown={e=>e.stopPropagation()}
       >
-        <Handle type="target" position={Position.Left} style={hs} />
         {dropping && (
-          <div className="absolute top-1 left-1 flex items-center text-xs space-x-1">
-            <Loader2 className="animate-spin" size={12}/>
-            <span>Attaching…</span>
-          </div>
+          <div className="absolute top-0 left-0 h-1 w-full bg-orange-500 animate-pulse"/>
         )}
+        <Handle type="target" position={Position.Left} style={hs}/>
 
         {/* Name */}
         <div className="mb-3">
@@ -354,124 +414,223 @@ export default function MapPage() {
           />
         </div>
 
-        {/* Files (auto-expanding list) */}
+        {/* Files */}
         <div className="mb-2">
           <span className="text-gray-300 font-medium text-xs">Files</span>
-          <ul className="space-y-1 mt-1">
-            {data.files.length > 0 ? data.files.map((f,i)=>(
+          <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
+            {nfData?.nodeFiles.map((nf:any)=>(
               <li
-                key={i}
-                className="flex items-center justify-between px-1 py-0.5 bg-orange-500 hover:bg-red-600 active:bg-red-700 rounded transition-colors text-xs text-white"
+                key={nf.file.id}
+                className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
               >
                 <div className="flex-1 flex items-center space-x-1 overflow-hidden">
                   <FileText size={12} className="flex-shrink-0"/>
-                  <span className="truncate">{f}</span>
+                  <span className="truncate">{nf.file.name}</span>
                 </div>
-                <button
-                  onClick={()=>handleRemove(f)}
-                  disabled={removingId===f}
-                  className="p-1 hover:bg-red-600 active:bg-red-700 rounded transition-colors"
-                  title="Remove"
-                >
-                  {removingId===f
-                    ? <Loader2 className="animate-spin" size={12}/>
-                    : <Minus size={12} className="text-white"/>}
-                </button>
+                <div className="flex items-center space-x-1">
+                  <a
+                    href={nf.file.uploadUrl}
+                    download
+                    className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                  >
+                    <Download size={12} className="text-white"/>
+                  </a>
+                  <button
+                    onClick={()=>
+                      removeFile({ variables:{ nodeId:id, fileId:nf.file.id }})
+                        .then(()=>refetchNodeFiles())
+                    }
+                    className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                  >
+                    <Minus size={12} className="text-white"/>
+                  </button>
+                </div>
               </li>
-            )) : (
-              <li className="text-gray-400 italic text-xs">(no files)</li>
+            )) || (
+              <li className="italic text-gray-400 text-xs">Drop file here</li>
             )}
           </ul>
         </div>
 
-        <Handle type="source" position={Position.Right} style={hs} />
+        {/* Shared with */}
+        <div className="mb-2">
+          <span className="text-gray-300 font-medium text-xs">Shared with</span>
+          <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
+            {data.shares.length>0 ? data.shares.map(share=>(
+              <li
+                key={share.id}
+                className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
+              >
+                <div className="flex items-center space-x-1">
+                  <span className="truncate">{share.sharedWithUser.username}</span>
+                  {share.permission==="R"
+                    ? <Eye size={12} className="text-white"/>
+                    : <Pen size={12} className="text-white"/>
+                  }
+                </div>
+                <button
+                  onClick={()=>revokeShare({ variables:{ shareId:share.id }})}
+                  className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                >
+                  <Minus size={12} className="text-white"/>
+                </button>
+              </li>
+            )) : (
+              <li className="italic text-gray-400 text-xs">Drag friend here</li>
+            )}
+          </ul>
+        </div>
+
+        <Handle type="source" position={Position.Right} style={hs}/>
       </div>
     );
   }
 
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
 
-  // Early returns
   if (nodesLoading || filesLoading) return <div className="p-4">Loading…</div>;
   if (nodesError) return <div className="p-4 text-red-500">Error: {nodesError.message}</div>;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-white">
       {/* HEADER */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
+      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75">
         <div className="text-2xl font-extrabold">
-          <span className="text-red-500">V</span><span className="text-white">ault</span>
+          <span className="text-red-500">V</span><span>ault</span>
         </div>
         <div className="flex items-center space-x-4">
-          <button onClick={handleAddNode} className="p-2 bg-orange-500 hover:bg-red-600 active:bg-red-700 rounded transition-colors">
-            <Plus size={16} className="text-white" />
+          <button onClick={handleAddNode} className="p-2 bg-orange-500 hover:bg-red-600 rounded">
+            <Plus size={16} className="text-white"/>
           </button>
-          <button onClick={handleDeleteSelected} className="p-2 bg-orange-500 hover:bg-red-600 active:bg-red-700 rounded transition-colors">
-            <Minus size={16} className="text-white" />
+          <button onClick={handleDeleteSelected} className="p-2 bg-orange-500 hover:bg-red-600 rounded">
+            <Minus size={16} className="text-white"/>
           </button>
           <span className="text-gray-200 font-medium">{user?.username}</span>
-          <button onClick={logout} className="px-4 py-2 bg-orange-500 hover:bg-red-600 active:bg-red-700 rounded transition-colors">
+          <button onClick={logout} className="px-4 py-2 bg-orange-500 hover:bg-red-600 rounded text-white">
             Logout
           </button>
         </div>
       </header>
 
-      {/* MAIN: SIDEBAR + MAP */}
+      {/* MAIN */}
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* SIDEBAR */}
         <aside
-          className="w-64 bg-neutral-800/75 backdrop-blur-sm p-4 overflow-auto"
+          className={`flex flex-col transition-width duration-200 ease-in-out bg-neutral-800/75 p-2 ${
+            sidebarCollapsed ? "w-12" : "w-64"
+          } overflow-auto`}
           onDragOver={e=>e.preventDefault()}
           onDrop={handleSidebarDrop}
         >
-          <h2 className="text-sm font-medium mb-2 text-white">My Files</h2>
-          {sidebarUploading && (
-            <div className="flex items-center text-xs mb-2 space-x-1 text-white">
-              <Loader2 className="animate-spin" size={12}/>
-              <span>Uploading…</span>
-            </div>
-          )}
-          {filesData!.myFiles.map(f => (
-            <div
-              key={f.id}
-              draggable
-              onDragStart={e=>
-                e.dataTransfer.setData(
-                  "application/json",
-                  JSON.stringify({ type:"vault-file", fileId:f.id })
-                )
+          <div className="flex justify-end mb-2">
+            <button onClick={()=>setSidebarCollapsed(s=>!s)} className="p-1 hover:bg-neutral-700 rounded">
+              {sidebarCollapsed
+                ? <ChevronRight className="text-orange-500" size={16}/>
+                : <ChevronLeft className="text-red-500" size={16}/>
               }
-              className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 hover:bg-red-600 active:bg-red-700 rounded cursor-grab transition-colors"
-            >
-              <div className="flex-1 flex items-center space-x-2 overflow-hidden">
-                <FileText size={14} className="text-white flex-shrink-0"/>
-                <span className="truncate text-white text-sm">{f.name}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <a
-                  href={f.downloadUrl}
-                  download
-                  className="p-1 hover:bg-red-600 active:bg-red-700 rounded transition-colors"
-                  title="Download"
+            </button>
+          </div>
+          {!sidebarCollapsed && (
+            <>
+              {/* Files */}
+              <h2 className="text-sm font-medium mb-2 text-white">Files</h2>
+              {sidebarUploading && <div className="h-1 w-full bg-orange-500 animate-pulse mb-2"/>}
+              {filesData?.myFiles.map(f=>(
+                <div
+                  key={f.id}
+                  draggable
+                  onDragStart={e=>
+                    e.dataTransfer.setData("application/json",
+                      JSON.stringify({ type:"vault-file", fileId:f.id })
+                    )
+                  }
+                  className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
                 >
-                  <Download size={14} className="text-white"/>
-                </a>
-                <button
-                  onClick={() => handleSidebarDelete(f.id)}
-                  disabled={removingSidebarId === f.id}
-                  className="p-1 hover:bg-red-600 active:bg-red-700 rounded transition-colors"
-                  title="Delete"
-                >
-                  {removingSidebarId===f.id
-                    ? <Loader2 className="animate-spin text-white" size={12}/>
-                    : <Trash2 size={14} className="text-white"/>}
-                </button>
+                  <div className="flex-1 flex items-center space-x-2 overflow-hidden">
+                    <FileText size={14} className="text-white flex-shrink-0"/>
+                    <span className="truncate text-white text-sm">{f.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <a href={f.downloadUrl} download className="p-1 bg-neutral-700 hover:bg-red-600 rounded">
+                      <Download size={14} className="text-white"/>
+                    </a>
+                    <button
+                      onClick={()=>handleSidebarDelete(f.id)}
+                      disabled={removingSidebarId===f.id}
+                      className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                    >
+                      <Trash2 size={14} className="text-white"/>
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Friends */}
+              <div className="mt-6 mb-2">
+                <h2 className="text-sm font-medium text-white">Friends</h2>
               </div>
-            </div>
-          ))}
+              {friendsLoading ? (
+                <p className="text-gray-400 text-sm">Loading friends…</p>
+              ) : friendsError ? (
+                <p className="text-red-500 text-sm">Error loading friends</p>
+              ) : friendsData?.friends.length ? (
+                friendsData.friends.map(f => {
+                  const perm = friendPermMap[f.id] || "R";
+                  return (
+                    <div
+                      key={f.id}
+                      draggable
+                      onDragStart={e=>
+                        e.dataTransfer.setData("application/json",
+                          JSON.stringify({
+                            type:"vault-friend",
+                            friendId:f.id,
+                            permission:perm
+                          })
+                        )
+                      }
+                      className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
+                    >
+                      <span className="flex-1 text-white truncate">{f.username}</span>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={ev=>{
+                            ev.stopPropagation();
+                            setFriendPermMap(m=>({...m,[f.id]:"R"}));
+                          }}
+                          className={`p-1 rounded ${perm==="R"? "bg-red-600":"bg-neutral-700"}`}
+                        >
+                          <Eye className="text-white" size={14}/>
+                        </button>
+                        <button
+                          onClick={ev=>{
+                            ev.stopPropagation();
+                            setFriendPermMap(m=>({...m,[f.id]:"W"}));
+                          }}
+                          className={`p-1 rounded ${perm==="W"? "bg-red-600":"bg-neutral-700"}`}
+                        >
+                          <Pen className="text-white" size={14}/>
+                        </button>
+                        <button
+                          onClick={()=>{
+                            createDirectChannel({ variables:{ withUserId:f.id } });
+                          }}
+                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                        >
+                          <MessageCircle className="text-white" size={14}/>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-gray-400 text-sm">No friends</p>
+              )}
+            </>
+          )}
         </aside>
 
-        {/* ReactFlow canvas */}
+        {/* CANVAS */}
         <div className="flex-1 relative" style={{ background:"#2D2D2D" }}>
           <ReactFlowProvider>
             <ReactFlow
@@ -486,11 +645,19 @@ export default function MapPage() {
               nodeTypes={nodeTypes}
               style={{ background:"transparent" }}
             >
-              <Controls style={{ background:"transparent" }} />
+              <Controls style={{ background:"transparent" }}/>
             </ReactFlow>
           </ReactFlowProvider>
         </div>
       </div>
+
+      {/* Chat overlay */}
+      {chatChannel && (
+        <ChatBox
+          channelId={chatChannel}
+          onClose={() => setChatChannel(null)}
+        />
+      )}
     </div>
   );
 }
