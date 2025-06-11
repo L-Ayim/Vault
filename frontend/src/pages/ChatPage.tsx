@@ -14,6 +14,7 @@ import {
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import Header from "../components/Header";
 import {
   Users,
   Clipboard,
@@ -33,7 +34,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -149,27 +150,14 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen bg-neutral-900 text-white">
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75">
-        <h1 className="text-2xl font-bold">
-          <span className="text-red-500">V</span>ault
-        </h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-200">{user?.username}</span>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <Header />
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
 
         {/* Friends Panel */}
         {panelOpen && (
-          <aside className="w-80 bg-neutral-800/75 p-4 flex-shrink-0 flex flex-col backdrop-blur-sm">
+          <aside className="w-full sm:w-80 bg-neutral-800/75 p-4 flex-shrink-0 flex flex-col backdrop-blur-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Friends</h2>
               <button onClick={() => setPanelOpen(false)} className="p-1">

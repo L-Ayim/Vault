@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import Header from "../components/Header";
 import { QUERY_ME } from "../graphql/operations";
 
 interface MeResult {
@@ -25,7 +25,6 @@ export default function SettingsPage() {
   }, []);
 
   // 2) Auth & navigation
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   // 3) Fetch current user info
@@ -62,24 +61,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
-        <div className="text-2xl font-extrabold">
-          <span className="text-red-500">V</span>
-          <span className="text-white">ault</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-200 font-medium">{username}</span>
-          <button
-            onClick={() => {
-              logout();
-              navigate("/login");
-            }}
-            className="px-4 py-2 bg-orange-500 text-white rounded-md font-medium hover:bg-red-600 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <Header />
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto p-6">
