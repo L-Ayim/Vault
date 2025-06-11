@@ -36,10 +36,11 @@ The backend is built with Django + Graphene (GraphQL) + MySQL. The frontend uses
   - Upload new files, view/download versions  
   - Share with users or groups  
   - Public file listing  
-- **Graph “Map”**  
-  - CRUD Nodes & Edges  
-  - Attach files to nodes  
-  - Interactive React Flow canvas with draggable nodes and connectable edges  
+- **Graph “Map”**
+  - CRUD Nodes & Edges
+  - Attach files to nodes
+  - Interactive React Flow canvas with draggable nodes and connectable edges
+  - Long-press items on mobile to drag with a preview overlay
 - **Chat**  
   - Direct (1:1) channels  
   - Node-specific discussion channels  

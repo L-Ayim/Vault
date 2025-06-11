@@ -7,7 +7,6 @@ import React, {
   useMemo,
   useRef,
   useState,
-  DragEvent,
 } from "react";
 import ReactFlow, {
   ReactFlowProvider,
@@ -57,7 +56,6 @@ import {
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
-import dragGhost from "../assets/drag-ghost.svg";
 
 interface FileOnNode {
   note: string;
@@ -161,7 +159,7 @@ export default function MapPage() {
   // sidebar upload / delete
   const [sidebarUploading, setSidebarUploading] = useState(false);
   const [removingSidebarId, setRemovingSidebarId] = useState<string|null>(null);
-  const handleSidebarDrop = useCallback(async (e: DragEvent) => {
+  const handleSidebarDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
     if (!files.length) return;
@@ -183,7 +181,7 @@ export default function MapPage() {
     | { type: "vault-friend"; friendId: string; name: string; permission: "R" | "W" };
   const [touchDrag, setTouchDrag] = useState<DragItem | null>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
-  const dragTimer = useRef<NodeJS.Timeout | null>(null);
+  const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelTouchDrag = () => {
     if (dragTimer.current) clearTimeout(dragTimer.current);
     dragTimer.current = null;
@@ -612,9 +610,6 @@ export default function MapPage() {
                   key={f.id}
                   draggable
                   onDragStart={e=>{
-                    const img = new Image();
-                    img.src = dragGhost;
-                    e.dataTransfer.setDragImage(img, 16, 16);
                     e.dataTransfer.effectAllowed = "copy";
                     e.dataTransfer.setData(
                       "application/json",
@@ -661,9 +656,6 @@ export default function MapPage() {
                       key={f.id}
                       draggable
                       onDragStart={e=>{
-                        const img = new Image();
-                        img.src = dragGhost;
-                        e.dataTransfer.setDragImage(img, 16, 16);
                         e.dataTransfer.effectAllowed = "copy";
                         e.dataTransfer.setData(
                           "application/json",
@@ -748,20 +740,24 @@ export default function MapPage() {
       )}
 
       {touchDrag && touchPos && (
-        <img
-          src={dragGhost}
+        <div
+          className="fixed pointer-events-none z-50 flex items-center space-x-1 bg-orange-500 text-white text-sm px-2 py-1 rounded"
           style={{
-            position:"fixed",
-            pointerEvents:"none",
-            top:touchPos.y,
-            left:touchPos.x,
-            width:32,
-            height:32,
-            transform:"translate(-50%,-50%)",
-            opacity:0.8,
-            zIndex:1000,
+            top: touchPos.y,
+            left: touchPos.x,
+            transform: "translate(-50%,-50%)",
+            opacity: 0.8,
           }}
-        />
+        >
+          {touchDrag.type === "vault-file" ? (
+            <>
+              <FileText size={16} className="text-white" />
+              <span className="truncate max-w-40">{touchDrag.name}</span>
+            </>
+          ) : (
+            <span className="truncate max-w-40">{touchDrag.name}</span>
+          )}
+        </div>
       )}
     </div>
   );
