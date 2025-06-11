@@ -1,8 +1,8 @@
 // src/pages/DashboardPage.tsx
 
 import { useEffect } from "react";
-import { useAuth } from "../auth/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import Header from "../components/Header";
 import { HardDrive, GitBranch, MessageCircle, Settings } from "lucide-react";
 
 export default function DashboardPage() {
@@ -11,39 +11,11 @@ export default function DashboardPage() {
     document.title = "Dashboard";
   }, []);
 
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  // Handle logout: clear token and send back to home
-  const handleLogout = () => {
-    logout();
-    navigate("/", { replace: true });
-  };
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
-        {/* Logo */}
-        <div className="text-2xl font-extrabold">
-          <Link to="/" className="flex items-center">
-            <span className="text-red-500">V</span>
-            <span className="text-white">ault</span>
-          </Link>
-        </div>
-
-        {/* User info and logout */}
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-200 font-medium">{user?.username}</span>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-orange-500 text-white rounded-md font-medium shadow
-                       hover:bg-red-600 active:bg-red-700 transition-colors duration-200"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <Header />
 
       {/* Main content: center four cards both vertically and horizontally */}
       <main className="flex-grow flex items-center justify-center p-6">

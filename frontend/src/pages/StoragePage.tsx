@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useQuery, useMutation, ApolloError, NetworkStatus } from "@apollo/client";
-import { useAuth } from "../auth/AuthContext";
+import Header from "../components/Header";
 import {
   QUERY_MY_FILES,
   MUTATION_UPLOAD_FILE,
@@ -44,7 +44,6 @@ export default function StoragePage() {
   }, []);
 
   // 2) AuthContext
-  const { user, logout } = useAuth();
 
   // 3) Fetch existing files
   const { data, loading, error, refetch, networkStatus } = useQuery<QueryMyFilesResult>(
@@ -148,21 +147,7 @@ export default function StoragePage() {
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
-        <div className="text-2xl font-extrabold">
-          <span className="text-red-500">V</span>
-          <span className="text-white">ault</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-200 font-medium">{user?.username}</span>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-orange-500 text-white rounded-md font-medium shadow hover:bg-red-600 active:bg-red-700 transition-colors duration-200"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <Header />
 
       {/* Main content */}
       <main className="flex-grow p-6 overflow-auto">

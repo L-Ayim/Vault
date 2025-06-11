@@ -54,7 +54,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import "reactflow/dist/style.css";
-import { useAuth } from "../auth/AuthContext";
+import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
 
 interface FileOnNode {
@@ -91,7 +91,6 @@ interface QueryMyFilesResult {
 interface Friend { id: string; username: string }
 
 export default function MapPage() {
-  const { user, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // chat overlay
@@ -494,30 +493,27 @@ export default function MapPage() {
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-white">
       {/* HEADER */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75">
-        <div className="text-2xl font-extrabold">
-          <span className="text-red-500">V</span><span>ault</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button onClick={handleAddNode} className="p-2 bg-orange-500 hover:bg-red-600 rounded">
-            <Plus size={16} className="text-white"/>
-          </button>
-          <button onClick={handleDeleteSelected} className="p-2 bg-orange-500 hover:bg-red-600 rounded">
-            <Minus size={16} className="text-white"/>
-          </button>
-          <span className="text-gray-200 font-medium">{user?.username}</span>
-          <button onClick={logout} className="px-4 py-2 bg-orange-500 hover:bg-red-600 rounded text-white">
-            Logout
-          </button>
-        </div>
-      </header>
+      <Header>
+        <button
+          onClick={handleAddNode}
+          className="p-2 bg-orange-500 hover:bg-red-600 rounded"
+        >
+          <Plus size={16} className="text-white" />
+        </button>
+        <button
+          onClick={handleDeleteSelected}
+          className="p-2 bg-orange-500 hover:bg-red-600 rounded"
+        >
+          <Minus size={16} className="text-white" />
+        </button>
+      </Header>
 
       {/* MAIN */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         {/* SIDEBAR */}
         <aside
-          className={`flex flex-col transition-width duration-200 ease-in-out bg-neutral-800/75 p-2 ${
-            sidebarCollapsed ? "w-12" : "w-64"
+          className={`flex flex-col transition-all duration-200 bg-neutral-800/75 p-2 ${
+            sidebarCollapsed ? "w-12" : "w-full sm:w-64"
           } overflow-auto`}
           onDragOver={e=>e.preventDefault()}
           onDrop={handleSidebarDrop}
