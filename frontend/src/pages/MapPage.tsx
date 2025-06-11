@@ -500,16 +500,22 @@ export default function MapPage() {
         <Handle type="source" position={Position.Right} style={handleStyle} />
 
         {/* Name */}
-        <div className="mb-3">
-          <label className="block text-gray-300 text-xs mb-1">Name</label>
-          <input
-            value={nm}
-            onChange={e=>setNm(e.target.value)}
-            onBlur={handleBlurOrEnter}
-            onKeyDown={e=>handleBlurOrEnter(e)}
-            className="w-full px-2 py-1 bg-neutral-700 text-white border border-neutral-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
+        {collapsed ? (
+          <div className="h-full flex items-center justify-center px-2">
+            <span className="text-white text-sm truncate">{data.name}</span>
+          </div>
+        ) : (
+          <div className="mb-3">
+            <label className="block text-gray-300 text-xs mb-1">Name</label>
+            <input
+              value={nm}
+              onChange={e=>setNm(e.target.value)}
+              onBlur={handleBlurOrEnter}
+              onKeyDown={e=>handleBlurOrEnter(e)}
+              className="w-full px-2 py-1 bg-neutral-700 text-white border border-neutral-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+        )}
 
         {!collapsed && (
           <>
