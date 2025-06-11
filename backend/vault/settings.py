@@ -1,15 +1,15 @@
 import os
 from pathlib import Path
 
-# ─── BASE DIR ────────────────────────────────────────────────────────────────
+# ─── BASE DIR ───────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ─── SECURITY ────────────────────────────────────────────────────────────────
+# ─── SECURITY ───────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-REPLACE_ME')
 DEBUG = True
 ALLOWED_HOSTS = ['*']  # In production, restrict to your domain(s)
 
-# ─── APPLICATIONS ────────────────────────────────────────────────────────────
+# ─── APPLICATIONS ───────────────────────────────────────────────────
 INSTALLED_APPS = [
     # Django built-ins
     'django.contrib.admin',
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'chat',
 ]
 
-# ─── MIDDLEWARE ──────────────────────────────────────────────────────────────
+# ─── MIDDLEWARE ──────────────────────────────────────────────────────
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',                # ← must be first
     'django.middleware.security.SecurityMiddleware',
@@ -46,8 +46,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ─── CORS CONFIGURATION ─────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
+# ─── CORS CONFIGURATION ─────────────────────────────────────────────
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [o for o in _cors_env.split(",") if o] or [
     # When you run Vite locally with `npm run dev`:
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -57,7 +58,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True  # Allow credentialed requests (cookies/JWT)
 
-# ─── URLCONF & TEMPLATES ─────────────────────────────────────────────────────
+# ─── URLCONF & TEMPLATES ────────────────────────────────────────────
 ROOT_URLCONF = 'vault.urls'
 
 TEMPLATES = [
@@ -76,11 +77,11 @@ TEMPLATES = [
     },
 ]
 
-# ─── WSGI & ASGI ─────────────────────────────────────────────────────────────
+# ─── WSGI & ASGI ────────────────────────────────────────────────────
 WSGI_APPLICATION = 'vault.wsgi.application'
 ASGI_APPLICATION = 'vault.asgi.application'
 
-# ─── DATABASE ────────────────────────────────────────────────────────────────
+# ─── DATABASE ───────────────────────────────────────────────────────
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
@@ -92,7 +93,7 @@ DATABASES = {
     }
 }
 
-# ─── PASSWORD VALIDATION ─────────────────────────────────────────────────────
+# ─── PASSWORD VALIDATION ────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME':'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME':'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -100,27 +101,27 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME':'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# ─── INTERNATIONALIZATION ────────────────────────────────────────────────────
+# ─── INTERNATIONALIZATION ───────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE     = 'UTC'
 USE_I18N      = True
 USE_TZ        = True
 
-# ─── STATIC FILES (CSS / JS / IMAGES) ────────────────────────────────────────
+# ─── STATIC FILES (CSS / JS / IMAGES) ───────────────────────────────
 STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# ─── MEDIA (USER UPLOADS) ────────────────────────────────────────────────────
+# ─── MEDIA (USER UPLOADS) ───────────────────────────────────────────
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ─── AUTH BACKENDS ────────────────────────────────────────────────────────────
+# ─── AUTH BACKENDS ──────────────────────────────────────────────────
 AUTHENTICATION_BACKENDS = [
     'graphql_jwt.backends.JSONWebTokenBackend',  # for tokenAuth → request.user
     'django.contrib.auth.backends.ModelBackend', # for django admin / login
 ]
 
-# ─── GRAPHENE + JWT CONFIG ───────────────────────────────────────────────────
+# ─── GRAPHENE + JWT CONFIG ─────────────────────────────────────────
 GRAPHENE = {
     'SCHEMA': 'vault.schema.schema',
     'MIDDLEWARE': [
@@ -128,5 +129,5 @@ GRAPHENE = {
     ],
 }
 
-# ─── DEFAULT PK FIELD TYPE ──────────────────────────────────────────────────
+# ─── DEFAULT PK FIELD TYPE ─────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

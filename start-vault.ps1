@@ -1,0 +1,32 @@
+# start-vault.ps1
+# ────────────────────────────────────────────────────────────────────────
+
+# 1. Auto-detect a 192.168.x.x IPv4 address (or prompt if none found)
+$ip = Get-NetIPAddress -AddressFamily IPv4 |
+      Where-Object { $_.IPAddress -match '^192\.168\.' } |
+      Select-Object -First 1 -ExpandProperty IPAddress
+
+if (-not $ip) {
+    Write-Warning "Could not auto-detect a 192.168.x.x address."
+    $ip = Read-Host "Please enter your LAN IP (e.g. 192.168.1.42)"
+}
+
+# 2. Build & write the .env
+$envLines = @(
+    "HOST_IP=${ip}"
+    "CORS_ALLOWED_ORIGINS=http://${ip}:5173"
+    "VITE_GRAPHQL_URL=http://${ip}:8000/graphql/"
+)
+$envLines | Set-Content -Path ".env" -Encoding UTF8
+
+# 3. Display the LAN endpoints
+Write-Host ""
+Write-Host "Vault UI available at:"
+Write-Host "  http://${ip}:5173"
+Write-Host ""
+Write-Host "GraphQL endpoint:"
+Write-Host "  http://${ip}:8000/graphql/"
+Write-Host ""
+
+# 4. Launch Docker Compose
+docker compose up --build
