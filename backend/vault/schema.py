@@ -5,7 +5,7 @@ from accounts.schema import AccountsQuery, AccountsMutation
 from files.schema import FilesQuery, FilesMutation
 from graph.schema import GraphQuery, GraphMutation
 from chat.schema import ChatQuery, ChatMutation
-from .subscriptions import NodeUpdates
+from .subscriptions import NodeUpdates, MessageUpdates
 
 
 class Query(
@@ -32,6 +32,7 @@ class Mutation(
 
 class Subscription(graphene.ObjectType):
     node_updates = NodeUpdates.Field()
+    message_updates = MessageUpdates.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, subscription=Subscription)
