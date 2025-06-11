@@ -496,18 +496,8 @@ export default function MapPage() {
           {collapsed ? <ChevronDown size={12} className="text-white"/> : <ChevronUp size={12} className="text-white"/>}
         </button>
 
-        {[0.2,0.5,0.8].map((pct,i)=>(
-          <Handle key={`l-${i}`} type="target" position={Position.Left} style={{ top:`${pct*100}%`, left:-6, ...handleStyle }}/>
-        ))}
-        {[0.2,0.8].map((pct,i)=>(
-          <Handle key={`t-${i}`} type="target" position={Position.Top} style={{ left:`${pct*100}%`, top:-6, ...handleStyle }}/>
-        ))}
-        {[0.2,0.5,0.8].map((pct,i)=>(
-          <Handle key={`r-${i}`} type="source" position={Position.Right} style={{ top:`${pct*100}%`, right:-6, ...handleStyle }}/>
-        ))}
-        {[0.2,0.8].map((pct,i)=>(
-          <Handle key={`b-${i}`} type="source" position={Position.Bottom} style={{ left:`${pct*100}%`, bottom:-6, ...handleStyle }}/>
-        ))}
+        <Handle type="target" position={Position.Left} style={handleStyle} />
+        <Handle type="source" position={Position.Right} style={handleStyle} />
 
         {/* Name */}
         <div className="mb-3">
@@ -666,6 +656,8 @@ export default function MapPage() {
                       "application/json",
                       JSON.stringify({ type: "vault-file", fileId: f.id })
                     );
+                    // hide native ghost image
+                    e.dataTransfer.setDragImage(new Image(), 0, 0);
                   }}
                   onTouchStart={e=>startFileTouchDrag(e,f.id,f.name)}
                   onTouchEnd={cancelTouchDrag}
@@ -716,6 +708,8 @@ export default function MapPage() {
                             permission: perm
                           })
                         );
+                        // hide native ghost image
+                        e.dataTransfer.setDragImage(new Image(), 0, 0);
                       }}
                       onTouchStart={e=>startFriendTouchDrag(e,f.id,f.username,perm)}
                       onTouchEnd={cancelTouchDrag}
