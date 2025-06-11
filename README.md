@@ -228,7 +228,8 @@ export CHOKIDAR_USEPOLLING=true
 4. **Run migrations & start server**:
    \`\`\`bash
    python manage.py migrate
-   python manage.py runserver
+   # Use Daphne so WebSocket subscriptions work
+  daphne -b 0.0.0.0 -p 8000 vault.asgi:application
    \`\`\`
    The backend will be available at \`http://127.0.0.1:8000/\`.
 
@@ -263,9 +264,9 @@ export CHOKIDAR_USEPOLLING=true
 
 ### Backend (inside \`backend/\`)
 
-- \`python manage.py migrate\`  
-- \`python manage.py runserver\`  
-- \`python manage.py createsuperuser\`  
+- \`python manage.py migrate\`
+- \`daphne -b 0.0.0.0 -p 8000 vault.asgi:application\` – start server with WebSocket support
+- \`python manage.py createsuperuser\`
 - \`python manage.py test\`
 
 ### Frontend (inside \`frontend/\`)
