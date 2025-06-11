@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   DragEvent,
 } from "react";
@@ -174,6 +175,73 @@ export default function MapPage() {
     await refetchFiles();
     setRemovingSidebarId(null);
   };
+
+  // long-press drag for touch devices
+  type DragItem =
+    | { type: "vault-file"; fileId: string; name: string }
+    | { type: "vault-friend"; friendId: string; name: string; permission: "R" | "W" };
+  const [touchDrag, setTouchDrag] = useState<DragItem | null>(null);
+  const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+  const dragTimer = useRef<NodeJS.Timeout | null>(null);
+  const cancelTouchDrag = () => {
+    if (dragTimer.current) clearTimeout(dragTimer.current);
+    dragTimer.current = null;
+  };
+  const startFileTouchDrag = (
+    e: React.TouchEvent,
+    fileId: string,
+    name: string,
+  ) => {
+    cancelTouchDrag();
+    dragTimer.current = setTimeout(() => {
+      setTouchDrag({ type: "vault-file", fileId, name });
+      setTouchPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    }, 300);
+  };
+  const startFriendTouchDrag = (
+    e: React.TouchEvent,
+    friendId: string,
+    name: string,
+    permission: "R" | "W",
+  ) => {
+    cancelTouchDrag();
+    dragTimer.current = setTimeout(() => {
+      setTouchDrag({ type: "vault-friend", friendId, name, permission });
+      setTouchPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    }, 300);
+  };
+
+  useEffect(() => {
+    if (!touchDrag) return;
+    const handleMove = (ev: TouchEvent) => {
+      if (ev.touches.length) {
+        setTouchPos({ x: ev.touches[0].clientX, y: ev.touches[0].clientY });
+      }
+    };
+    const handleEnd = async () => {
+      cancelTouchDrag();
+      if (touchDrag && touchPos) {
+        const el = document.elementFromPoint(touchPos.x, touchPos.y);
+        const nodeEl = el?.closest('.react-flow__node') as HTMLElement | null;
+        const nodeId = nodeEl?.dataset.id;
+        if (nodeId) {
+          if (touchDrag.type === "vault-file") {
+            await addFileToNode({ variables: { nodeId, fileId: touchDrag.fileId } });
+          } else {
+            await shareNode({ variables: { nodeId, userId: touchDrag.friendId, permission: touchDrag.permission } });
+          }
+        }
+      }
+      setTouchDrag(null);
+      setTouchPos(null);
+    };
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+    return () => {
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [touchDrag, touchPos, addFileToNode, shareNode]);
 
   // persist positions
   const getSavedPositions = () => {
@@ -446,7 +514,7 @@ export default function MapPage() {
                 </div>
               </li>
             )) || (
-              <li className="italic text-gray-400 text-xs">Drop file here</li>
+              <li className="italic text-gray-400 text-xs">Drag file here</li>
             )}
           </ul>
         </div>
@@ -540,6 +608,9 @@ export default function MapPage() {
                       JSON.stringify({ type:"vault-file", fileId:f.id })
                     )
                   }
+                  onTouchStart={e=>startFileTouchDrag(e,f.id,f.name)}
+                  onTouchEnd={cancelTouchDrag}
+                  onTouchMove={cancelTouchDrag}
                   className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
                 >
                   <div className="flex-1 flex items-center space-x-2 overflow-hidden">
@@ -585,6 +656,9 @@ export default function MapPage() {
                           })
                         )
                       }
+                      onTouchStart={e=>startFriendTouchDrag(e,f.id,f.username,perm)}
+                      onTouchEnd={cancelTouchDrag}
+                      onTouchMove={cancelTouchDrag}
                       className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
                     >
                       <span className="flex-1 text-white truncate">{f.username}</span>
@@ -653,6 +727,15 @@ export default function MapPage() {
           channelId={chatChannel}
           onClose={() => setChatChannel(null)}
         />
+      )}
+
+      {touchDrag && touchPos && (
+        <div
+          className="pointer-events-none fixed px-2 py-1 bg-orange-500 text-white rounded text-xs"
+          style={{ left: touchPos.x, top: touchPos.y, transform: 'translate(-50%, -50%)', zIndex: 1000 }}
+        >
+          {touchDrag.name}
+        </div>
       )}
     </div>
   );
