@@ -145,6 +145,8 @@ No additional \`.env\` file is needed locally, as \`docker-compose.yml\` passes:
 
 \`\`\`
 VITE_GRAPHQL_URL=http://vault_backend:8000/graphql/
+# Optional: enable GraphQL subscriptions
+VITE_GRAPHQL_WS_URL=ws://vault_backend:8000/graphql/
 CHOKIDAR_USEPOLLING=true
 \`\`\`
 
@@ -152,6 +154,7 @@ If running frontend outside Docker, set in your shell:
 
 \`\`\`bash
 export VITE_GRAPHQL_URL=http://localhost:8000/graphql/
+export VITE_GRAPHQL_WS_URL=ws://localhost:8000/graphql/
 export CHOKIDAR_USEPOLLING=true
 \`\`\`
 
@@ -240,9 +243,11 @@ export CHOKIDAR_USEPOLLING=true
 2. **Set environment variable** (point Apollo to your local Django):
    \`\`\`bash
    export VITE_GRAPHQL_URL=http://127.0.0.1:8000/graphql/
+   export VITE_GRAPHQL_WS_URL=ws://127.0.0.1:8000/graphql/
    export CHOKIDAR_USEPOLLING=true
    # Windows PowerShell:
    # $env:VITE_GRAPHQL_URL="http://127.0.0.1:8000/graphql/"
+   # $env:VITE_GRAPHQL_WS_URL="ws://127.0.0.1:8000/graphql/"
    # $env:CHOKIDAR_USEPOLLING="true"
    \`\`\`
 
