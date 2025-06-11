@@ -1,6 +1,6 @@
 // src/pages/SettingsPage.tsx
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
