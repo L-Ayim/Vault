@@ -1,2 +1,4 @@
 # Force LF endings for all shell scripts
 *.sh    text eol=lf
+backend/requirements.txt text eol=lf
+
