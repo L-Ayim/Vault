@@ -6,8 +6,12 @@ import React, { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useSubscription } from "@apollo/client";
 import {
   QUERY_FRIENDS,
+  QUERY_MY_GROUPS,
+  QUERY_MY_NODES,
   QUERY_CHANNEL_MESSAGES,
   MUTATION_CREATE_DIRECT_CHANNEL,
+  MUTATION_JOIN_GROUP_CHANNEL,
+  MUTATION_JOIN_NODE_CHANNEL,
   MUTATION_SEND_MESSAGE,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
@@ -28,6 +32,8 @@ import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
 import CallPanel from "../components/CallPanel";
 
 interface Friend { id: string; username: string }
+interface Group { id: string; name: string }
+interface NodeItem { id: string; name: string }
 interface Message {
   id: string
   sender: { id: string; username: string }
@@ -45,6 +51,8 @@ export default function ChatPage() {
 
   // chat UI state
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -82,6 +90,12 @@ export default function ChatPage() {
   const { data: friendsData, loading: friendsLoading, error: friendsError, refetch: refetchFriends } =
     useQuery<{ friends: Friend[] }>(QUERY_FRIENDS, { variables:{ limit:50, offset:0 } });
 
+  const { data: groupsData, loading: groupsLoading, error: groupsError, refetch: refetchGroups } =
+    useQuery<{ myGroups: Group[] }>(QUERY_MY_GROUPS, { variables:{ limit:50, offset:0 } });
+
+  const { data: nodesData, loading: nodesLoading, error: nodesError, refetch: refetchNodes } =
+    useQuery<{ myNodes: NodeItem[] }>(QUERY_MY_NODES, { variables:{ limit:50, offset:0 } });
+
   const { data: messagesData, loading: messagesLoading, error: messagesError, refetch: refetchMessages } =
     useQuery<{ channelMessages: Message[] }>(QUERY_CHANNEL_MESSAGES, {
       variables:{ channelId:selectedChannelId||"", limit:50, offset:0 },
@@ -94,15 +108,33 @@ export default function ChatPage() {
   useEffect(() => {
     if (subData) {
       refetchFriends();
+      refetchGroups();
+      refetchNodes();
       if (selectedChannelId) {
         refetchMessages();
       }
     }
-  }, [subData, refetchFriends, refetchMessages, selectedChannelId]);
+  }, [subData, refetchFriends, refetchGroups, refetchNodes, refetchMessages, selectedChannelId]);
 
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
     onCompleted: ({ createDirectChannel }) => {
       setSelectedChannelId(createDirectChannel.channel.id);
+      setMessageText("");
+      setPanelOpen(false);
+    },
+  });
+
+  const [joinGroupChannel] = useMutation(MUTATION_JOIN_GROUP_CHANNEL, {
+    onCompleted: ({ joinGroupChannel }) => {
+      setSelectedChannelId(joinGroupChannel.channel.id);
+      setMessageText("");
+      setPanelOpen(false);
+    },
+  });
+
+  const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL, {
+    onCompleted: ({ joinNodeChannel }) => {
+      setSelectedChannelId(joinNodeChannel.channel.id);
       setMessageText("");
       setPanelOpen(false);
     },
@@ -180,9 +212,41 @@ export default function ChatPage() {
     if(selectedFriendId===id){
       setSelectedFriendId(null);
       setSelectedChannelId(null);
+      setSelectedGroupId(null);
+      setSelectedNodeId(null);
     } else {
       setSelectedFriendId(id);
+      setSelectedGroupId(null);
+      setSelectedNodeId(null);
       createDirectChannel({ variables:{ withUserId:id }});
+    }
+  }
+
+  function selectGroup(id:string){
+    if(selectedGroupId===id){
+      setSelectedGroupId(null);
+      setSelectedChannelId(null);
+      setSelectedFriendId(null);
+      setSelectedNodeId(null);
+    } else {
+      setSelectedGroupId(id);
+      setSelectedFriendId(null);
+      setSelectedNodeId(null);
+      joinGroupChannel({ variables:{ groupId:id }});
+    }
+  }
+
+  function selectNode(id:string){
+    if(selectedNodeId===id){
+      setSelectedNodeId(null);
+      setSelectedChannelId(null);
+      setSelectedFriendId(null);
+      setSelectedGroupId(null);
+    } else {
+      setSelectedNodeId(id);
+      setSelectedFriendId(null);
+      setSelectedGroupId(null);
+      joinNodeChannel({ variables:{ nodeId:id }});
     }
   }
 
@@ -225,25 +289,80 @@ export default function ChatPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {friendsData!.friends.length ? (
-                friendsData!.friends.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => selectFriend(f.id)}
-                    className={`
-                      w-full text-left px-3 py-2 rounded-md focus:outline-none
-                      ${selectedFriendId === f.id
-                        ? "bg-red-600"
-                        : "bg-orange-500 hover:bg-orange-600"}
-                    `}
-                  >
-                    {f.username}
-                  </button>
-                ))
-              ) : (
-                <p className="text-gray-400 text-sm">No friends available.</p>
-              )}
+            <div className="flex-1 overflow-y-auto space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Friends</h3>
+                {friendsData!.friends.length ? (
+                  friendsData!.friends.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => selectFriend(f.id)}
+                      className={`
+                        w-full text-left px-3 py-2 rounded-md focus:outline-none
+                        ${selectedFriendId === f.id
+                          ? "bg-red-600"
+                          : "bg-orange-500 hover:bg-orange-600"}
+                      `}
+                    >
+                      {f.username}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm">No friends available.</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Groups</h3>
+                {groupsLoading && <div>Loading…</div>}
+                {groupsError && <div>Error loading groups</div>}
+                {!groupsLoading && !groupsError && (
+                  groupsData && groupsData.myGroups.length ? (
+                    groupsData.myGroups.map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => selectGroup(g.id)}
+                        className={`
+                          w-full text-left px-3 py-2 rounded-md focus:outline-none
+                          ${selectedGroupId === g.id
+                            ? "bg-red-600"
+                            : "bg-orange-500 hover:bg-orange-600"}
+                        `}
+                      >
+                        {g.name}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No groups available.</p>
+                  )
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Nodes</h3>
+                {nodesLoading && <div>Loading…</div>}
+                {nodesError && <div>Error loading nodes</div>}
+                {!nodesLoading && !nodesError && (
+                  nodesData && nodesData.myNodes.length ? (
+                    nodesData.myNodes.map(n => (
+                      <button
+                        key={n.id}
+                        onClick={() => selectNode(n.id)}
+                        className={`
+                          w-full text-left px-3 py-2 rounded-md focus:outline-none
+                          ${selectedNodeId === n.id
+                            ? "bg-red-600"
+                            : "bg-orange-500 hover:bg-orange-600"}
+                        `}
+                      >
+                        {n.name}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No nodes available.</p>
+                  )
+                )}
+              </div>
             </div>
 
             <details className="mt-4 border-t border-neutral-700 pt-4">
@@ -319,7 +438,7 @@ export default function ChatPage() {
 
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {!selectedChannelId && (
-              <div className="text-gray-400">Select a friend to start chatting.</div>
+              <div className="text-gray-400">Select a channel to start chatting.</div>
             )}
             {selectedChannelId && messagesLoading && <div>Loading…</div>}
             {selectedChannelId && messagesError && (

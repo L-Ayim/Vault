@@ -490,7 +490,7 @@ export default function MapPage() {
         e: React.KeyboardEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
         isArea = false
       ) => {
-      const k = (e as any).key;
+      const k = 'key' in e ? (e as React.KeyboardEvent<HTMLElement>).key : undefined;
       if (!isArea && k && k!=="Enter") return;
       if (nm!==data.name||desc!==data.description) commitRename(id,nm,desc);
     };
