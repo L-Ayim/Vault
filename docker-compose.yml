@@ -51,6 +51,8 @@ services:
     environment:
       # Point at your host’s Django API instead of the internal Docker hostname
       VITE_GRAPHQL_URL: ${VITE_GRAPHQL_URL:-http://localhost:8000/graphql/}
+      # WebSocket endpoint for GraphQL subscriptions
+      VITE_GRAPHQL_WS_URL: ${VITE_GRAPHQL_WS_URL:-ws://localhost:8000/graphql/}
       # Keep polling for file‑watching in Docker
       CHOKIDAR_USEPOLLING: "true"
     ports:
