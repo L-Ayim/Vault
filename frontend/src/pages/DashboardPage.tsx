@@ -21,9 +21,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900">
+    <div className="flex flex-col min-h-screen bg-neutral-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
+      <header className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm space-y-4 sm:space-y-0">
         {/* Logo */}
         <div className="text-2xl font-extrabold">
           <Link to="/" className="flex items-center">

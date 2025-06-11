@@ -146,9 +146,9 @@ export default function StoragePage() {
 
   // 11) Render
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 text-white">
+    <div className="flex flex-col min-h-screen bg-neutral-900 text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
+      <header className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-neutral-800/75 backdrop-blur-sm space-y-4 sm:space-y-0">
         <div className="text-2xl font-extrabold">
           <span className="text-red-500">V</span>
           <span className="text-white">ault</span>
@@ -171,7 +171,7 @@ export default function StoragePage() {
           <h2 className="text-2xl font-semibold mb-4">
             Upload New File{selectedFiles.length > 1 ? "s" : ""}
           </h2>
-          <form onSubmit={handleUploadSubmit} className="flex items-center space-x-4">
+          <form onSubmit={handleUploadSubmit} className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <input
               type="file"
               multiple
@@ -196,7 +196,7 @@ export default function StoragePage() {
 
         {/* Search + List */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-2 sm:space-y-0">
             <h2 className="text-2xl font-semibold">My Files</h2>
             <input
               type="text"
@@ -220,7 +220,7 @@ export default function StoragePage() {
               {paginatedFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between bg-neutral-800/75 p-4 rounded-md shadow"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between bg-neutral-800/75 p-4 rounded-md shadow space-y-2 sm:space-y-0"
                 >
                   <div className="flex items-center space-x-3">
                     <FileText size={24} className="text-orange-500" />

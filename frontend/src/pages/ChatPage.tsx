@@ -19,7 +19,8 @@ import {
   Clipboard,
   Search,
   Send,
-  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Friend { id: string; username: string; }
@@ -44,6 +45,7 @@ export default function ChatPage() {
   const [redeemCode, setRedeemCode] = useState("");
   const [copiedFriend, setCopiedFriend] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Queries
@@ -81,7 +83,9 @@ export default function ChatPage() {
     onCompleted: () => {
       setMessageText("");
       setError(null);
-      selectedChannelId && refetchMessages();
+      if (selectedChannelId) {
+        refetchMessages();
+      }
     },
     onError: () => setError("Failed to send. Please try again."),
   });
@@ -109,7 +113,9 @@ export default function ChatPage() {
       let raw = f;
       try {
         raw = new URL(f).searchParams.get("invite") || f;
-      } catch {}
+      } catch {
+        /* ignore malformed URLs */
+      }
       redeemFriendInvite({ variables: { code: raw } });
     }
   }, [searchParams]);
@@ -192,120 +198,142 @@ export default function ChatPage() {
   if (friendsError) return <div>Error loading sidebar</div>;
 
   return (
-    <div className="flex h-screen bg-neutral-900 text-white">
+    <div className="flex flex-col min-h-screen bg-neutral-900 text-white">
 
-      {/* Sidebar */}
-      <aside className="w-80 bg-neutral-800/75 p-4 flex flex-col backdrop-blur-sm">
-        <h1 className="text-2xl font-extrabold mb-4">
-          <span className="text-red-500">V</span>ault
-        </h1>
-
-        {/* Friends header with icon */}
-        <div className="flex items-center mb-3">
-          <Users className="mr-2 text-orange-500" />
-          <h2 className="text-lg font-semibold text-white">Friends</h2>
+      <header className="flex items-center justify-end px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
+        <div className="flex items-center space-x-4">
+          <span className="text-gray-200">{user?.username}</span>
+          <button
+            onClick={logout}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white focus:outline-none"
+          >
+            Logout
+          </button>
         </div>
+      </header>
 
-        <div className="flex-1 overflow-y-auto space-y-2">
-          {friendsData!.friends.length ? (
-            friendsData!.friends.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => selectFriend(f.id)}
-                className={`w-full text-left px-3 py-2 rounded-md focus:outline-none ${
-                  selectedFriendId === f.id
-                    ? "bg-red-600 text-white"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
-                }`}
-              >
-                {f.username}
-              </button>
-            ))
-          ) : (
-            <p className="text-gray-400 text-sm">No friends available.</p>
-          )}
-        </div>
+      <div className="flex flex-1 flex-col sm:flex-row">
 
-        {/* Invite Friend & Redeem */}
-        <div className="mt-4 space-y-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Users className="mr-1 text-orange-500" />
-              Invite Friend
-            </h3>
-            <div className="flex items-center space-x-2">
-              <input
-                readOnly
-                value={
-                  copiedFriend
-                    ? "Copied!"
-                    : `${window.location.origin}/chat?invite=${inviteCode}`
-                }
-                className="flex-1 px-3 py-2 bg-neutral-700 rounded-md text-sm text-white"
-              />
-              <button
-                onClick={handleCopyFriend}
-                className={`p-2 rounded focus:outline-none ${
-                  copiedFriend
-                    ? "bg-red-600 text-white"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
-                }`}
-              >
-                <Clipboard size={16} />
-              </button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Search className="mr-1 text-orange-500" />
-              Redeem Invite
-            </h3>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Paste friend link or code"
-                value={redeemCode}
-                onChange={(e) => setRedeemCode(e.target.value)}
-                className="flex-1 px-2 py-1 bg-neutral-700 rounded-md text-sm text-white"
-              />
-              <button
-                onClick={() => {
-                  const code = redeemCode.trim().replace(/.*invite=/, "");
-                  redeemFriendInvite({ variables: { code } });
-                  setRedeemCode("");
-                }}
-                disabled={redeeming}
-                className={`px-3 py-1 rounded focus:outline-none ${
-                  redeeming
-                    ? "bg-neutral-600 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
-                }`}
-              >
-                {redeeming ? "Joining…" : "Join"}
-              </button>
-            </div>
-            {redeemError && (
-              <p className="text-red-400 text-sm">{redeemError.message}</p>
-            )}
-          </div>
-        </div>
-      </aside>
-
-      {/* Chat Area */}
-      <main className="flex-1 flex flex-col">
-        <header className="flex items-center justify-end px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-200">{user?.username}</span>
+        {/* Sidebar */}
+        <aside
+          className={`flex flex-col transition-all duration-200 ease-in-out bg-neutral-800/75 p-4 backdrop-blur-sm ${
+            sidebarCollapsed ? "sm:w-12 w-full" : "sm:w-64 w-full"
+          }`}
+        >
+          <div className="flex justify-end mb-2">
             <button
-              onClick={logout}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white focus:outline-none"
+              onClick={() => setSidebarCollapsed((s) => !s)}
+              className="p-1 hover:bg-neutral-700 rounded"
             >
-              Logout
+              {sidebarCollapsed ? (
+                <ChevronRight className="text-orange-500" size={16} />
+              ) : (
+                <ChevronLeft className="text-red-500" size={16} />
+              )}
             </button>
           </div>
-        </header>
+          {!sidebarCollapsed && (
+            <>
+              <h1 className="text-2xl font-extrabold mb-4">
+                <span className="text-red-500">V</span>ault
+              </h1>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Friends header with icon */}
+              <div className="flex items-center mb-3">
+                <Users className="mr-2 text-orange-500" />
+                <h2 className="text-lg font-semibold text-white">Friends</h2>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {friendsData!.friends.length ? (
+                  friendsData!.friends.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => selectFriend(f.id)}
+                      className={`w-full text-left px-3 py-2 rounded-md focus:outline-none ${
+                        selectedFriendId === f.id
+                          ? "bg-red-600 text-white"
+                          : "bg-orange-500 text-white hover:bg-orange-600"
+                      }`}
+                    >
+                      {f.username}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm">No friends available.</p>
+                )}
+              </div>
+
+              {/* Invite Friend & Redeem */}
+              <div className="mt-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Users className="mr-1 text-orange-500" />
+                    Invite Friend
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      readOnly
+                      value={
+                        copiedFriend
+                          ? "Copied!"
+                          : `${window.location.origin}/chat?invite=${inviteCode}`
+                      }
+                      className="flex-1 px-3 py-2 bg-neutral-700 rounded-md text-sm text-white"
+                    />
+                    <button
+                      onClick={handleCopyFriend}
+                      className={`p-2 rounded focus:outline-none ${
+                        copiedFriend
+                          ? "bg-red-600 text-white"
+                          : "bg-orange-500 text-white hover:bg-orange-600"
+                      }`}
+                    >
+                      <Clipboard size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Search className="mr-1 text-orange-500" />
+                    Redeem Invite
+                  </h3>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Paste friend link or code"
+                      value={redeemCode}
+                      onChange={(e) => setRedeemCode(e.target.value)}
+                      className="flex-1 px-2 py-1 bg-neutral-700 rounded-md text-sm text-white"
+                    />
+                    <button
+                      onClick={() => {
+                        const code = redeemCode.trim().replace(/.*invite=/, "");
+                        redeemFriendInvite({ variables: { code } });
+                        setRedeemCode("");
+                      }}
+                      disabled={redeeming}
+                      className={`px-3 py-1 rounded focus:outline-none ${
+                        redeeming
+                          ? "bg-neutral-600 text-gray-500 cursor-not-allowed"
+                          : "bg-orange-500 text-white hover:bg-orange-600"
+                      }`}
+                    >
+                      {redeeming ? "Joining…" : "Join"}
+                    </button>
+                  </div>
+                  {redeemError && (
+                    <p className="text-red-400 text-sm">{redeemError.message}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </aside>
+
+        {/* Chat Area */}
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {selectedChannelId ? (
             messagesLoading ? (
               <div>Loading messages…</div>
@@ -376,29 +404,8 @@ export default function ChatPage() {
           <p className="text-red-400 text-center text-sm mt-2">{error}</p>
         )}
       </main>
+      </div>
     </div>
   );
 }
 
-// Helpers
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleString();
-}
-function renderText(txt: string) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return txt.split(urlRegex).map((chunk, i) =>
-    urlRegex.test(chunk) ? (
-      <a
-        key={i}
-        href={chunk}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-400 underline"
-      >
-        {chunk}
-      </a>
-    ) : (
-      <span key={i}>{chunk}</span>
-    )
-  );
-}

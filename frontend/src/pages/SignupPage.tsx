@@ -44,7 +44,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-neutral-900">
+    <div className="flex items-center justify-center min-h-screen bg-neutral-900 px-4">
       <div className="w-full max-w-sm px-6 py-10 bg-neutral-800/75 backdrop-blur-sm rounded-xl shadow-lg">
         {/* Title: simply "Sign Up" */}
         <div className="text-center mb-6">

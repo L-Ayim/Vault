@@ -10,9 +10,9 @@ export default function NotFoundPage() {
   }, []);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-neutral-900 px-4">
+    <div className="flex items-center justify-center min-h-screen bg-neutral-900 px-4">
       <div className="w-full max-w-md bg-neutral-800/75 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
-        <h1 className="text-6xl font-extrabold text-white mb-4">404</h1>
+        <h1 className="text-5xl sm:text-6xl font-extrabold text-white mb-4">404</h1>
         <p className="text-gray-300 text-lg mb-6">
           Oops—this page doesn’t exist.
         </p>

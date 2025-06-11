@@ -492,9 +492,9 @@ export default function MapPage() {
   if (nodesError) return <div className="p-4 text-red-500">Error: {nodesError.message}</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 text-white">
+    <div className="flex flex-col min-h-screen bg-neutral-900 text-white">
       {/* HEADER */}
-      <header className="flex items-center justify-between px-6 py-4 bg-neutral-800/75">
+      <header className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-neutral-800/75 space-y-4 sm:space-y-0">
         <div className="text-2xl font-extrabold">
           <span className="text-red-500">V</span><span>ault</span>
         </div>
@@ -513,11 +513,11 @@ export default function MapPage() {
       </header>
 
       {/* MAIN */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         {/* SIDEBAR */}
         <aside
-          className={`flex flex-col transition-width duration-200 ease-in-out bg-neutral-800/75 p-2 ${
-            sidebarCollapsed ? "w-12" : "w-64"
+          className={`flex flex-col transition-all duration-200 ease-in-out bg-neutral-800/75 p-2 ${
+            sidebarCollapsed ? "sm:w-12 w-full" : "sm:w-64 w-full"
           } overflow-auto`}
           onDragOver={e=>e.preventDefault()}
           onDrop={handleSidebarDrop}
