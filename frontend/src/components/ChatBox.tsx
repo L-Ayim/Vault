@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useSubscription } from "@apollo/client";
-import { QUERY_CHANNEL_MESSAGES, MUTATION_SEND_MESSAGE, SUBSCRIPTION_NODE_UPDATES } from "../graphql/operations";
+import { QUERY_CHANNEL_MESSAGES, MUTATION_SEND_MESSAGE, SUBSCRIPTION_MESSAGE_UPDATES } from "../graphql/operations";
 import { Send, X } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -36,7 +36,10 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
   );
 
   // Subscribe to updates and refetch messages when an event arrives
-  const { data: subData } = useSubscription(SUBSCRIPTION_NODE_UPDATES);
+  const { data: subData } = useSubscription(SUBSCRIPTION_MESSAGE_UPDATES, {
+    variables: { channelId },
+    skip: !channelId,
+  });
   useEffect(() => {
     if (subData) refetch();
   }, [subData, refetch]);

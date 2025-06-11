@@ -27,3 +27,27 @@ class NodeUpdates(channels_graphql_ws.Subscription):
         async_to_sync(cls.broadcast)(
             group=f"node_{node_id}", payload={"id": str(node_id)}
         )
+
+
+class MessageUpdates(channels_graphql_ws.Subscription):
+    """Broadcast chat message events for a channel."""
+
+    channel_id = graphene.ID()
+
+    class Arguments:
+        channel_id = graphene.ID(required=True)
+
+    @staticmethod
+    def subscribe(root, info, channel_id):
+        return [f"channel_{channel_id}"]
+
+    @staticmethod
+    def publish(payload, info, channel_id):
+        return MessageUpdates(channel_id=payload.get("channel_id"))
+
+    @classmethod
+    def notify(cls, channel_id):
+        async_to_sync(cls.broadcast)(
+            group=f"channel_{channel_id}",
+            payload={"channel_id": str(channel_id)},
+        )

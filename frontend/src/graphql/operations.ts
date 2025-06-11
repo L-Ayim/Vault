@@ -879,3 +879,11 @@ export const SUBSCRIPTION_NODE_UPDATES = gql`
     }
   }
 `;
+
+export const SUBSCRIPTION_MESSAGE_UPDATES = gql`
+  subscription MessageUpdates($channelId: ID!) {
+    messageUpdates(channelId: $channelId) {
+      channelId
+    }
+  }
+`;
