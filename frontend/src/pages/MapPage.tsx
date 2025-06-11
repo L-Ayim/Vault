@@ -57,6 +57,7 @@ import {
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
+import dragGhost from "../assets/drag-ghost.svg";
 
 interface FileOnNode {
   note: string;
@@ -393,7 +394,11 @@ export default function MapPage() {
 
     const { data: nfData, refetch: refetchNodeFiles } = useQuery(
       QUERY_NODE_FILES,
-      { variables:{ nodeId:id } }
+      {
+        variables:{ nodeId:id },
+        fetchPolicy:"network-only",
+        pollInterval:1000,
+      }
     );
 
     useEffect(() => {
@@ -608,8 +613,9 @@ export default function MapPage() {
                   draggable
                   onDragStart={e=>{
                     const img = new Image();
-                    img.src = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-                    e.dataTransfer.setDragImage(img, 0, 0);
+                    img.src = dragGhost;
+                    e.dataTransfer.setDragImage(img, 16, 16);
+                    e.dataTransfer.effectAllowed = "copy";
                     e.dataTransfer.setData(
                       "application/json",
                       JSON.stringify({ type: "vault-file", fileId: f.id })
@@ -656,8 +662,9 @@ export default function MapPage() {
                       draggable
                       onDragStart={e=>{
                         const img = new Image();
-                        img.src = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-                        e.dataTransfer.setDragImage(img, 0, 0);
+                        img.src = dragGhost;
+                        e.dataTransfer.setDragImage(img, 16, 16);
+                        e.dataTransfer.effectAllowed = "copy";
                         e.dataTransfer.setData(
                           "application/json",
                           JSON.stringify({
@@ -740,7 +747,22 @@ export default function MapPage() {
         />
       )}
 
-      {/* Drag preview removed on touch devices */}
+      {touchDrag && touchPos && (
+        <img
+          src={dragGhost}
+          style={{
+            position:"fixed",
+            pointerEvents:"none",
+            top:touchPos.y,
+            left:touchPos.x,
+            width:32,
+            height:32,
+            transform:"translate(-50%,-50%)",
+            opacity:0.8,
+            zIndex:1000,
+          }}
+        />
+      )}
     </div>
   );
 }
