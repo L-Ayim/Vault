@@ -78,8 +78,16 @@ export const QUERY_INCOMING_INVITES = gql`
 
 // 3) My friends (with pagination + optional username filter)
 export const QUERY_FRIENDS = gql`
-  query GetFriends($limit: Int = 20, $offset: Int = 0, $usernameContains: String) {
-    friends(limit: $limit, offset: $offset, usernameContains: $usernameContains) {
+  query GetFriends(
+    $limit: Int = 20
+    $offset: Int = 0
+    $usernameContains: String
+  ) {
+    friends(
+      limit: $limit
+      offset: $offset
+      usernameContains: $usernameContains
+    ) {
       id
       username
       email
@@ -150,7 +158,11 @@ export const MUTATION_CREATE_FRIEND_INVITE = gql`
     $maxUses: Int
     $expiresAt: DateTime
   ) {
-    createFriendInvite(codeType: $codeType, maxUses: $maxUses, expiresAt: $expiresAt) {
+    createFriendInvite(
+      codeType: $codeType
+      maxUses: $maxUses
+      expiresAt: $expiresAt
+    ) {
       invite {
         code
         createdBy {
@@ -239,7 +251,7 @@ export const QUERY_MY_FILES = gql`
       id
       name
       createdAt
-      downloadUrl   # ← returns the permanent MEDIA_URL path
+      downloadUrl # ← returns the permanent MEDIA_URL path
       owner {
         id
         username
@@ -263,7 +275,11 @@ export const QUERY_MY_FILES = gql`
 
 // 2) Publicly shared files
 export const QUERY_PUBLIC_FILES = gql`
-  query GetPublicFiles($limit: Int = 20, $offset: Int = 0, $nameContains: String) {
+  query GetPublicFiles(
+    $limit: Int = 20
+    $offset: Int = 0
+    $nameContains: String
+  ) {
     publicFiles(limit: $limit, offset: $offset, nameContains: $nameContains) {
       id
       name
@@ -303,7 +319,7 @@ export const MUTATION_UPLOAD_FILE = gql`
       file {
         id
         name
-        downloadUrl    # ← request permanent download URL
+        downloadUrl # ← request permanent download URL
         createdAt
         owner {
           id
@@ -342,7 +358,11 @@ export const MUTATION_ADD_FILE_VERSION = gql`
 // 6) Share a file with a specific user
 export const MUTATION_SHARE_FILE_WITH_USER = gql`
   mutation ShareFileWithUser($fileId: ID!, $userId: ID!, $permission: String!) {
-    shareFileWithUser(fileId: $fileId, userId: $userId, permission: $permission) {
+    shareFileWithUser(
+      fileId: $fileId
+      userId: $userId
+      permission: $permission
+    ) {
       share {
         id
         permission
@@ -362,8 +382,16 @@ export const MUTATION_SHARE_FILE_WITH_USER = gql`
 
 // 7) Share a file with a group
 export const MUTATION_SHARE_FILE_WITH_GROUP = gql`
-  mutation ShareFileWithGroup($fileId: ID!, $groupId: ID!, $permission: String!) {
-    shareFileWithGroup(fileId: $fileId, groupId: $groupId, permission: $permission) {
+  mutation ShareFileWithGroup(
+    $fileId: ID!
+    $groupId: ID!
+    $permission: String!
+  ) {
+    shareFileWithGroup(
+      fileId: $fileId
+      groupId: $groupId
+      permission: $permission
+    ) {
       share {
         id
         permission
@@ -414,12 +442,16 @@ export const MUTATION_REVOKE_FILE_SHARE = gql`
 
 // 11) Keep (copy) a file (optionally copy all versions)
 export const MUTATION_KEEP_FILE = gql`
-  mutation KeepFile($fileId: ID!, $copyName: String, $allVersions: Boolean = false) {
+  mutation KeepFile(
+    $fileId: ID!
+    $copyName: String
+    $allVersions: Boolean = false
+  ) {
     keepFile(fileId: $fileId, copyName: $copyName, allVersions: $allVersions) {
       file {
         id
         name
-        downloadUrl    # ← the copy’s download URL as well
+        downloadUrl # ← the copy’s download URL as well
         owner {
           id
           username
@@ -442,7 +474,7 @@ export const MUTATION_RENAME_FILE = gql`
       file {
         id
         name
-        downloadUrl    # ← request updated download URL if name changed
+        downloadUrl # ← request updated download URL if name changed
       }
     }
   }
@@ -481,7 +513,11 @@ export const QUERY_MY_CHANNELS = gql`
 
 // 2) Messages for a specific channel (with pagination)
 export const QUERY_CHANNEL_MESSAGES = gql`
-  query GetChannelMessages($channelId: ID!, $limit: Int = 50, $offset: Int = 0) {
+  query GetChannelMessages(
+    $channelId: ID!
+    $limit: Int = 50
+    $offset: Int = 0
+  ) {
     channelMessages(channelId: $channelId, limit: $limit, offset: $offset) {
       id
       channel {
@@ -541,7 +577,25 @@ export const MUTATION_JOIN_NODE_CHANNEL = gql`
   }
 `;
 
-// 5) Send a message (with optional file upload) to a channel
+// 5) Join (or create) a group channel
+export const MUTATION_JOIN_GROUP_CHANNEL = gql`
+  mutation JoinGroupChannel($groupId: ID!) {
+    joinGroupChannel(groupId: $groupId) {
+      channel {
+        id
+        name
+        channelType
+        group {
+          id
+          name
+        }
+        createdAt
+      }
+    }
+  }
+`;
+
+// 6) Send a message (with optional file upload) to a channel
 export const MUTATION_SEND_MESSAGE = gql`
   mutation SendMessage($channelId: ID!, $text: String, $upload: Upload) {
     sendMessage(channelId: $channelId, text: $text, upload: $upload) {
@@ -758,12 +812,12 @@ export const MUTATION_REMOVE_FILE_FROM_NODE = gql`
 
 // 11) Move a file from one node to another
 export const MUTATION_MOVE_FILE_BETWEEN_NODES = gql`
-  mutation MoveFileBetweenNodes(
-    $fromNode: ID!
-    $toNode: ID!
-    $fileId: ID!
-  ) {
-    moveFileBetweenNodes(fromNode: $fromNode, toNode: $toNode, fileId: $fileId) {
+  mutation MoveFileBetweenNodes($fromNode: ID!, $toNode: ID!, $fileId: ID!) {
+    moveFileBetweenNodes(
+      fromNode: $fromNode
+      toNode: $toNode
+      fileId: $fileId
+    ) {
       ok
     }
   }
@@ -802,7 +856,11 @@ export const MUTATION_DELETE_EDGE = gql`
 // 14) Share a node with a user
 export const MUTATION_SHARE_NODE_WITH_USER = gql`
   mutation ShareNodeWithUser($nodeId: ID!, $userId: ID!, $permission: String!) {
-    shareNodeWithUser(nodeId: $nodeId, userId: $userId, permission: $permission) {
+    shareNodeWithUser(
+      nodeId: $nodeId
+      userId: $userId
+      permission: $permission
+    ) {
       share {
         id
         permission
@@ -818,8 +876,16 @@ export const MUTATION_SHARE_NODE_WITH_USER = gql`
 
 // 15) Share a node with a group
 export const MUTATION_SHARE_NODE_WITH_GROUP = gql`
-  mutation ShareNodeWithGroup($nodeId: ID!, $groupId: ID!, $permission: String!) {
-    shareNodeWithGroup(nodeId: $nodeId, groupId: $groupId, permission: $permission) {
+  mutation ShareNodeWithGroup(
+    $nodeId: ID!
+    $groupId: ID!
+    $permission: String!
+  ) {
+    shareNodeWithGroup(
+      nodeId: $nodeId
+      groupId: $groupId
+      permission: $permission
+    ) {
       share {
         id
         permission
