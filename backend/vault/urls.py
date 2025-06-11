@@ -9,7 +9,6 @@ from django.conf.urls.static import static
 from django.views.decorators.csrf import csrf_exempt
 # Use the special GraphQL view that handles multipart/file uploads
 from graphene_file_upload.django import FileUploadGraphQLView
-from .views import NoSubscriptionGraphQLView
 
 urlpatterns = [
     # Admin site
@@ -21,7 +20,7 @@ urlpatterns = [
     path(
         'graphql/',
         csrf_exempt(
-            NoSubscriptionGraphQLView.as_view(graphiql=True)
+            FileUploadGraphQLView.as_view(graphiql=True)
         ),
         name='graphql',
     ),
