@@ -49,6 +49,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Eye,
   Pen,
   MessageCircle,
@@ -253,8 +255,8 @@ export default function MapPage() {
       setTouchDrag(null);
       setTouchPos(null);
     };
-    window.addEventListener('touchmove', handleMove);
-    window.addEventListener('touchend', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd,  { passive: false });
     return () => {
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
@@ -397,6 +399,7 @@ export default function MapPage() {
   function CustomNode({ id, data, selected }: NodeProps<{
     id:string; name:string; description:string; files:string[]; shares:NodeShare[]
   }>) {
+    const [collapsed, setCollapsed] = useState(false);
     const [nm, setNm] = useState(data.name);
     const [desc, setDesc] = useState(data.description);
     const [dropping, setDropping] = useState(false);
@@ -421,8 +424,12 @@ export default function MapPage() {
       }
     }, [nfData]);
 
-    const hs: React.CSSProperties = {
-      background:"#F97316", width:14, height:14, borderRadius:7, cursor:"pointer"
+    const handleStyle: React.CSSProperties = {
+      width:12,
+      height:12,
+      borderRadius:6,
+      background:'#F97316',
+      border:0
     };
 
     const onDragOver = (e:React.DragEvent)=>e.preventDefault();
@@ -472,16 +479,35 @@ export default function MapPage() {
       <div
         onDragOver={onDragOver}
         onDrop={onDrop}
-        className={`relative bg-neutral-800/75 rounded-xl p-4 w-48 select-none ${
+        className={`relative bg-neutral-800/75 rounded-xl p-4 ${collapsed? 'w-32 h-10' : 'w-48'} select-none ${
           selected? "ring-2 ring-orange-500":""
         }`}
-        style={{ fontFamily:"'Segoe UI',sans-serif", color:"#F1F5F9" }}
+        style={{ fontFamily:"'Segoe UI',sans-serif", color:"#F1F5F9", transition:'height 0.2s' }}
         onMouseDown={e=>e.stopPropagation()}
       >
         {dropping && (
           <div className="absolute top-0 left-0 h-1 w-full bg-orange-500 animate-pulse"/>
         )}
-        <Handle type="target" position={Position.Left} style={hs}/>
+
+        <button
+          onClick={()=>setCollapsed(c=>!c)}
+          className="absolute top-1 right-1 p-1 bg-neutral-700 rounded"
+        >
+          {collapsed ? <ChevronDown size={12} className="text-white"/> : <ChevronUp size={12} className="text-white"/>}
+        </button>
+
+        {[0.2,0.5,0.8].map((pct,i)=>(
+          <Handle key={`l-${i}`} type="target" position={Position.Left} style={{ top:`${pct*100}%`, left:-6, ...handleStyle }}/>
+        ))}
+        {[0.2,0.8].map((pct,i)=>(
+          <Handle key={`t-${i}`} type="target" position={Position.Top} style={{ left:`${pct*100}%`, top:-6, ...handleStyle }}/>
+        ))}
+        {[0.2,0.5,0.8].map((pct,i)=>(
+          <Handle key={`r-${i}`} type="source" position={Position.Right} style={{ top:`${pct*100}%`, right:-6, ...handleStyle }}/>
+        ))}
+        {[0.2,0.8].map((pct,i)=>(
+          <Handle key={`b-${i}`} type="source" position={Position.Bottom} style={{ left:`${pct*100}%`, bottom:-6, ...handleStyle }}/>
+        ))}
 
         {/* Name */}
         <div className="mb-3">
@@ -495,86 +521,91 @@ export default function MapPage() {
           />
         </div>
 
-        {/* Description */}
-        <div className="mb-3">
-          <label className="block text-gray-300 text-xs mb-1">Description</label>
-          <textarea
-            value={desc}
-            onChange={e=>setDesc(e.target.value)}
-            onBlur={e=>handleBlurOrEnter(e,true)}
-            rows={2}
-            className="w-full px-2 py-1 bg-neutral-700 text-white border border-neutral-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-vertical"
-          />
-        </div>
+        {!collapsed && (
+          <>
+            {/* Description */}
+            <div className="mb-3">
+              <label className="block text-gray-300 text-xs mb-1">Description</label>
+              <textarea
+                value={desc}
+                onChange={e=>setDesc(e.target.value)}
+                onBlur={e=>handleBlurOrEnter(e,true)}
+                rows={2}
+                className="w-full px-2 py-1 bg-neutral-700 text-white border border-neutral-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-vertical"
+              />
+            </div>
 
-        {/* Files */}
-        <div className="mb-2">
-          <span className="text-gray-300 font-medium text-xs">Files</span>
-          <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
-            {nfData?.nodeFiles.map((nf:any)=>(
-              <li
-                key={nf.file.id}
-                className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
-              >
-                <div className="flex-1 flex items-center space-x-1 overflow-hidden">
-                  <FileText size={12} className="flex-shrink-0"/>
-                  <span className="truncate">{nf.file.name}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <a
-                    href={nf.file.uploadUrl}
-                    download
-                    className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+            {/* Files */}
+            <div className="mb-2">
+              <span className="text-gray-300 font-medium text-xs">Files</span>
+              <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
+                {nfData.nodeFiles.length > 0 ? (
+                  nfData.nodeFiles.map((nf:any)=>(
+                    <li
+                      key={nf.file.id}
+                      className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
+                    >
+                      <div className="flex-1 flex items-center space-x-1 overflow-hidden">
+                        <FileText size={12} className="flex-shrink-0"/>
+                        <span className="truncate">{nf.file.name}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <a
+                          href={nf.file.uploadUrl}
+                          download
+                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                        >
+                          <Download size={12} className="text-white"/>
+                        </a>
+                        <button
+                          onClick={()=>
+                            removeFile({ variables:{ nodeId:id, fileId:nf.file.id }})
+                              .then(()=>refetchNodeFiles())
+                          }
+                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                        >
+                          <Minus size={12} className="text-white"/>
+                        </button>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="italic text-gray-400 text-xs">Drag file here</li>
+                )}
+              </ul>
+            </div>
+
+            {/* Shared with */}
+            <div className="mb-2">
+              <span className="text-gray-300 font-medium text-xs">Shared with</span>
+              <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
+                {data.shares.length>0 ? data.shares.map(share=>(
+                  <li
+                    key={share.id}
+                    className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
                   >
-                    <Download size={12} className="text-white"/>
-                  </a>
-                  <button
-                    onClick={()=>
-                      removeFile({ variables:{ nodeId:id, fileId:nf.file.id }})
-                        .then(()=>refetchNodeFiles())
-                    }
-                    className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                  >
-                    <Minus size={12} className="text-white"/>
-                  </button>
-                </div>
-              </li>
-            )) || (
-              <li className="italic text-gray-400 text-xs">Drag file here</li>
-            )}
-          </ul>
-        </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="truncate">{share.sharedWithUser.username}</span>
+                      {share.permission==="R"
+                        ? <Eye size={12} className="text-white"/>
+                        : <Pen size={12} className="text-white"/>
+                      }
+                    </div>
+                    <button
+                      onClick={()=>revokeShare({ variables:{ shareId:share.id }})}
+                      className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                    >
+                      <Minus size={12} className="text-white"/>
+                    </button>
+                  </li>
+                )) : (
+                  <li className="italic text-gray-400 text-xs">Drag friend here</li>
+                )}
+              </ul>
+            </div>
+          </>
+        )}
 
-        {/* Shared with */}
-        <div className="mb-2">
-          <span className="text-gray-300 font-medium text-xs">Shared with</span>
-          <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
-            {data.shares.length>0 ? data.shares.map(share=>(
-              <li
-                key={share.id}
-                className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
-              >
-                <div className="flex items-center space-x-1">
-                  <span className="truncate">{share.sharedWithUser.username}</span>
-                  {share.permission==="R"
-                    ? <Eye size={12} className="text-white"/>
-                    : <Pen size={12} className="text-white"/>
-                  }
-                </div>
-                <button
-                  onClick={()=>revokeShare({ variables:{ shareId:share.id }})}
-                  className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                >
-                  <Minus size={12} className="text-white"/>
-                </button>
-              </li>
-            )) : (
-              <li className="italic text-gray-400 text-xs">Drag friend here</li>
-            )}
-          </ul>
-        </div>
-
-        <Handle type="source" position={Position.Right} style={hs}/>
       </div>
     );
   }
@@ -731,7 +762,7 @@ export default function MapPage() {
         </aside>
 
         {/* CANVAS */}
-        <div className="flex-1 relative" style={{ background:"#2D2D2D" }}>
+        <div className="flex-1 relative overscroll-none" style={{ touchAction:'none', background:'#2D2D2D' }}>
           <ReactFlowProvider>
             <ReactFlow
               nodes={nodes}
