@@ -93,6 +93,11 @@ interface Friend { id: string; username: string }
 export default function MapPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // set page title
+  useEffect(() => {
+    document.title = "Map";
+  }, []);
+
   // chat overlay
   const [chatChannel, setChatChannel] = useState<string | null>(null);
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
@@ -121,11 +126,15 @@ export default function MapPage() {
   }, [friendsData]);
 
   // nodes + files
-  const { data: nodesData, loading: nodesLoading, error: nodesError } =
-    useQuery<QueryMyNodesResult>(QUERY_MY_NODES, {
-      fetchPolicy: "network-only",
-      pollInterval: 1000,
-    });
+  const {
+    data: nodesData,
+    loading: nodesLoading,
+    error: nodesError,
+    refetch: refetchNodes,
+  } = useQuery<QueryMyNodesResult>(QUERY_MY_NODES, {
+    fetchPolicy: "network-only",
+    pollInterval: 1000,
+  });
   const {
     data: filesData,
     loading: filesLoading,
@@ -230,8 +239,15 @@ export default function MapPage() {
           if (touchDrag.type === "vault-file") {
             await addFileToNode({ variables: { nodeId, fileId: touchDrag.fileId } });
           } else {
-            await shareNode({ variables: { nodeId, userId: touchDrag.friendId, permission: touchDrag.permission } });
+            await shareNode({
+              variables: {
+                nodeId,
+                userId: touchDrag.friendId,
+                permission: touchDrag.permission,
+              },
+            });
           }
+          await refetchNodes();
         }
       }
       setTouchDrag(null);
@@ -417,17 +433,21 @@ export default function MapPage() {
       const js = dt.getData("application/json");
       if (js) {
         const obj = JSON.parse(js);
-        if (obj.type==="vault-friend") {
-          await shareNode({ variables:{
-            nodeId:id, userId:obj.friendId, permission:obj.permission
-          }});
-          await refetchNodeFiles();
+        if (obj.type === "vault-friend") {
+          await shareNode({
+            variables: {
+              nodeId: id,
+              userId: obj.friendId,
+              permission: obj.permission,
+            },
+          });
+          await Promise.all([refetchNodeFiles(), refetchNodes()]);
           setDropping(false);
           return;
         }
-        if (obj.type==="vault-file") {
-          await addFileToNode({ variables:{ nodeId:id, fileId:obj.fileId }});
-          await refetchNodeFiles();
+        if (obj.type === "vault-file") {
+          await addFileToNode({ variables: { nodeId: id, fileId: obj.fileId } });
+          await Promise.all([refetchNodeFiles(), refetchNodes()]);
           setDropping(false);
           return;
         }
@@ -438,7 +458,7 @@ export default function MapPage() {
           const r = await uploadFile({ variables:{ name:f.name, upload:f } });
           await addFileToNode({ variables:{ nodeId:id, fileId:r.data.uploadFile.file.id }});
         }
-        await Promise.all([refetchNodeFiles(),refetchFiles()]);
+        await Promise.all([refetchNodeFiles(), refetchFiles(), refetchNodes()]);
       }
       setDropping(false);
     },[id,shareNode,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
@@ -565,7 +585,7 @@ export default function MapPage() {
   if (nodesError) return <div className="p-4 text-red-500">Error: {nodesError.message}</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 text-white">
+    <div className="flex flex-col h-screen bg-neutral-900 text-white overscroll-none">
       {/* HEADER */}
       <Header>
         <button
