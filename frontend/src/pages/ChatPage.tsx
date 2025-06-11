@@ -21,7 +21,11 @@ import {
   Send,
   ChevronRight,
   ChevronLeft,
+  Phone,
+  Video,
 } from "lucide-react";
+import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
+import CallPanel from "../components/CallPanel";
 
 interface Friend { id: string; username: string }
 interface Message {
@@ -48,6 +52,30 @@ export default function ChatPage() {
   const [copiedFriend, setCopiedFriend] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const processedIds = useRef<Set<string>>(new Set());
+
+  const CALL_PREFIX = "__CALL__:";
+
+  const [sendSignalMutation] = useMutation(MUTATION_SEND_MESSAGE);
+
+  const {
+    localStream,
+    remoteStream,
+    startCall,
+    handleSignal,
+    endCall,
+    active,
+    isVideo,
+  } = useWebRTC((msg: SignalMessage) => {
+    if (selectedChannelId) {
+      sendSignalMutation({
+        variables: {
+          channelId: selectedChannelId,
+          text: CALL_PREFIX + JSON.stringify(msg),
+        },
+      });
+    }
+  });
 
   useEffect(() => { document.title = "Chat" }, []);
 
@@ -127,6 +155,26 @@ export default function ChatPage() {
     () => { messagesEndRef.current?.scrollIntoView({ behavior:"smooth" }) },
     [messagesData?.channelMessages]
   );
+
+  // Process call signaling messages
+  useEffect(() => {
+    if (!messagesData) return;
+    messagesData.channelMessages.forEach((m) => {
+      if (!processedIds.current.has(m.id)) {
+        processedIds.current.add(m.id);
+        if (m.text && m.text.startsWith(CALL_PREFIX) && m.sender.id !== user?.id) {
+          try {
+            const payload: SignalMessage = JSON.parse(
+              m.text.slice(CALL_PREFIX.length)
+            );
+            handleSignal(payload);
+          } catch {
+            /* ignore malformed */
+          }
+        }
+      }
+    });
+  }, [messagesData, handleSignal, user?.id]);
 
   function selectFriend(id:string){
     if(selectedFriendId===id){
@@ -324,7 +372,29 @@ export default function ChatPage() {
             >
               <Send size={16} />
             </button>
+            <button
+              onClick={() => startCall(false)}
+              disabled={!selectedChannelId || active}
+              className="p-2 bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50 text-white"
+            >
+              <Phone size={16} />
+            </button>
+            <button
+              onClick={() => startCall(true)}
+              disabled={!selectedChannelId || active}
+              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 text-white"
+            >
+              <Video size={16} />
+            </button>
           </div>
+          {active && (
+            <CallPanel
+              localStream={localStream}
+              remoteStream={remoteStream}
+              onEnd={endCall}
+              video={isVideo}
+            />
+          )}
           {error && <p className="text-red-400 text-center text-sm mt-2">{error}</p>}
         </main>
       </div>

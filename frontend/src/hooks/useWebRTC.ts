@@ -15,6 +15,19 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
   const [active, setActive] = useState(false);
   const videoRef = useRef(false);
 
+  async function getMedia(video: boolean): Promise<MediaStream | null> {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      console.error("Media devices API unavailable");
+      return null;
+    }
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: true, video });
+    } catch (err) {
+      console.error("Error accessing user media", err);
+      return null;
+    }
+  }
+
   const cleanup = useCallback(() => {
     peerRef.current?.close();
     peerRef.current = null;
@@ -28,7 +41,8 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
 
   const startCall = useCallback(async (video: boolean) => {
     videoRef.current = video;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+    const stream = await getMedia(video);
+    if (!stream) return;
     localStreamRef.current = stream;
     setLocalStream(stream);
 
@@ -52,7 +66,8 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
   const handleSignal = useCallback(async (msg: SignalMessage) => {
     if (msg.type === "offer") {
       videoRef.current = !!msg.video;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: msg.video });
+      const stream = await getMedia(!!msg.video);
+      if (!stream) return;
       localStreamRef.current = stream;
       setLocalStream(stream);
       const peer = new RTCPeerConnection({
