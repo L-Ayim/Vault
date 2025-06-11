@@ -867,3 +867,15 @@ export const MUTATION_REVOKE_NODE_SHARE = gql`
     }
   }
 `;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   SUBSCRIPTIONS
+   ─────────────────────────────────────────────────────────────────────────── */
+
+export const SUBSCRIPTION_NODE_UPDATES = gql`
+  subscription NodeUpdates {
+    nodeUpdates {
+      id
+    }
+  }
+`;
