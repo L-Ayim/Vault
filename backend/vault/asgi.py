@@ -16,9 +16,9 @@ from django.urls import path
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "vault.settings")
 
-from .graphql import GraphqlWsConsumer
-
 django_asgi_app = get_asgi_application()
+
+from .graphql import GraphqlWsConsumer
 
 application = ProtocolTypeRouter(
     {
