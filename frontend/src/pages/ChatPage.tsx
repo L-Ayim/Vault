@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery, useMutation, useSubscription } from "@apollo/client";
 import {
   QUERY_FRIENDS,
   QUERY_CHANNEL_MESSAGES,
@@ -11,18 +11,16 @@ import {
   MUTATION_SEND_MESSAGE,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
+  SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import {
-  Users,
   Clipboard,
-  Search,
   Send,
   ChevronRight,
   ChevronLeft,
-  X,
 } from "lucide-react";
 
 interface Friend { id: string; username: string }
@@ -54,15 +52,25 @@ export default function ChatPage() {
   useEffect(() => { document.title = "Chat" }, []);
 
   const { data: friendsData, loading: friendsLoading, error: friendsError, refetch: refetchFriends } =
-    useQuery<{ friends: Friend[] }>(QUERY_FRIENDS, { variables:{ limit:50, offset:0 }, pollInterval:1000 });
+    useQuery<{ friends: Friend[] }>(QUERY_FRIENDS, { variables:{ limit:50, offset:0 } });
 
   const { data: messagesData, loading: messagesLoading, error: messagesError, refetch: refetchMessages } =
     useQuery<{ channelMessages: Message[] }>(QUERY_CHANNEL_MESSAGES, {
       variables:{ channelId:selectedChannelId||"", limit:50, offset:0 },
       skip: !selectedChannelId,
       fetchPolicy:"network-only",
-      pollInterval:2000,
     });
+
+  // Subscribe for updates and refetch lists when events fire
+  const { data: subData } = useSubscription(SUBSCRIPTION_NODE_UPDATES);
+  useEffect(() => {
+    if (subData) {
+      refetchFriends();
+      if (selectedChannelId) {
+        refetchMessages();
+      }
+    }
+  }, [subData, refetchFriends, refetchMessages, selectedChannelId]);
 
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
     onCompleted: ({ createDirectChannel }) => {
@@ -76,7 +84,9 @@ export default function ChatPage() {
     onCompleted: () => {
       setMessageText("");
       setError(null);
-      selectedChannelId && refetchMessages();
+      if (selectedChannelId) {
+        refetchMessages();
+      }
     },
     onError: () => setError("Failed to send. Please try again."),
   });
@@ -102,7 +112,9 @@ export default function ChatPage() {
     const f = searchParams.get("invite");
     if (f) {
       let raw = f;
-      try { raw = new URL(f).searchParams.get("invite")||f } catch {}
+      try { raw = new URL(f).searchParams.get("invite") || f; } catch {
+        /* ignore invalid URL */
+      }
       redeemFriendInvite({ variables:{ code:raw } });
     }
   }, [searchParams]);

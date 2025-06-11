@@ -22,7 +22,7 @@ import ReactFlow, {
   type Node,
   type Edge,
 } from "reactflow";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery, useMutation, useSubscription } from "@apollo/client";
 import {
   QUERY_MY_NODES,
   QUERY_MY_FILES,
@@ -40,6 +40,7 @@ import {
   MUTATION_SHARE_NODE_WITH_USER,
   MUTATION_REVOKE_NODE_SHARE,
   MUTATION_CREATE_DIRECT_CHANNEL,
+  SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import {
   Plus,
@@ -111,10 +112,10 @@ export default function MapPage() {
     data: friendsData,
     loading: friendsLoading,
     error: friendsError,
+    refetch: refetchFriends,
   } = useQuery<{ friends: Friend[] }>(QUERY_FRIENDS, {
     variables: { limit: 20, offset: 0 },
     fetchPolicy: "cache-and-network",
-    pollInterval: 1000,
   });
 
   // per-friend R/W toggle
@@ -135,13 +136,22 @@ export default function MapPage() {
     refetch: refetchNodes,
   } = useQuery<QueryMyNodesResult>(QUERY_MY_NODES, {
     fetchPolicy: "network-only",
-    pollInterval: 1000,
   });
   const {
     data: filesData,
     loading: filesLoading,
     refetch: refetchFiles,
   } = useQuery<QueryMyFilesResult>(QUERY_MY_FILES);
+
+  // Subscribe for updates and refetch lists when events fire
+  const { data: subData } = useSubscription(SUBSCRIPTION_NODE_UPDATES);
+  useEffect(() => {
+    if (subData) {
+      refetchNodes();
+      refetchFiles();
+      refetchFriends();
+    }
+  }, [subData, refetchNodes, refetchFiles, refetchFriends]);
 
   // mutations
   const [uploadFile]    = useMutation(MUTATION_UPLOAD_FILE);
@@ -414,13 +424,19 @@ export default function MapPage() {
       {
         variables:{ nodeId:id },
         fetchPolicy:"network-only",
-        pollInterval:1000,
       }
     );
 
+    const { data: nodeSub } = useSubscription(SUBSCRIPTION_NODE_UPDATES, { variables:{ nodeId:id } });
+    useEffect(() => {
+      if (nodeSub) {
+        refetchNodeFiles();
+      }
+    }, [nodeSub, refetchNodeFiles]);
+
     useEffect(() => {
       if (nfData?.nodeFiles) {
-        data.files = nfData.nodeFiles.map((nf:any)=>nf.file.name);
+        data.files = nfData.nodeFiles.map((nf: FileOnNode) => nf.file.name);
       }
     }, [nfData]);
 
@@ -470,7 +486,10 @@ export default function MapPage() {
       setDropping(false);
     },[id,shareNode,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
 
-    const handleBlurOrEnter = (e:any,isArea=false)=>{
+      const handleBlurOrEnter = (
+        e: React.KeyboardEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
+        isArea = false
+      ) => {
       if (!isArea && e.key && e.key!=="Enter") return;
       if (nm!==data.name||desc!==data.description) commitRename(id,nm,desc);
     };
@@ -535,8 +554,8 @@ export default function MapPage() {
             <div className="mb-2">
               <span className="text-gray-300 font-medium text-xs">Files</span>
               <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
-                {nfData?.nodeFiles?.length > 0 ? (
-                  nfData.nodeFiles.map((nf:any)=>(
+                  {nfData?.nodeFiles?.length > 0 ? (
+                    nfData.nodeFiles.map((nf: FileOnNode) => (
                     <li
                       key={nf.file.id}
                       className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
