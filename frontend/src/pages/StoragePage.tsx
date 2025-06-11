@@ -156,17 +156,20 @@ export default function StoragePage() {
           <h2 className="text-2xl font-semibold mb-4">
             Upload New File{selectedFiles.length > 1 ? "s" : ""}
           </h2>
-          <form onSubmit={handleUploadSubmit} className="flex items-center space-x-4">
+          <form
+            onSubmit={handleUploadSubmit}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4"
+          >
             <input
               type="file"
               multiple
               onChange={handleFileChange}
-              className="text-sm text-gray-200 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
+              className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
             />
             <button
               type="submit"
               disabled={uploading || selectedFiles.length === 0}
-              className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-md font-medium shadow hover:bg-red-600 active:bg-red-700 transition-colors duration-200 disabled:opacity-50"
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-md font-medium shadow hover:bg-red-600 active:bg-red-700 transition-colors duration-200 disabled:opacity-50"
             >
               <UploadCloud size={20} className="text-white" />
               <span>
@@ -181,14 +184,14 @@ export default function StoragePage() {
 
         {/* Search + List */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-4 space-y-2 sm:space-y-0 sm:space-x-4">
             <h2 className="text-2xl font-semibold">My Files</h2>
             <input
               type="text"
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Search by name…"
-              className="px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full sm:w-64 px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
 
@@ -201,11 +204,11 @@ export default function StoragePage() {
               {searchTerm ? "No files match that search." : "You have no files uploaded."}
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between bg-neutral-800/75 p-4 rounded-md shadow"
+                  className="flex flex-col sm:flex-row justify-between bg-neutral-800/75 p-4 rounded-md shadow"
                 >
                   <div className="flex items-center space-x-3">
                     <FileText size={24} className="text-orange-500" />
@@ -243,11 +246,11 @@ export default function StoragePage() {
               ))}
 
               {/* Pagination Controls */}
-              <div className="flex items-center justify-center space-x-2 mt-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-2 mt-6">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 bg-neutral-700 rounded-md text-gray-200 hover:bg-neutral-600 disabled:opacity-50 transition-colors duration-200"
+                  className="w-full sm:w-auto px-3 py-2 bg-neutral-700 rounded-md text-gray-200 hover:bg-neutral-600 disabled:opacity-50 transition-colors duration-200"
                 >
                   Previous
                 </button>
@@ -257,7 +260,7 @@ export default function StoragePage() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 bg-neutral-700 rounded-md text-gray-200 hover:bg-neutral-600 disabled:opacity-50 transition-colors duration-200"
+                  className="w-full sm:w-auto px-3 py-2 bg-neutral-700 rounded-md text-gray-200 hover:bg-neutral-600 disabled:opacity-50 transition-colors duration-200"
                 >
                   Next
                 </button>
