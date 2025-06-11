@@ -192,6 +192,7 @@ export default function MapPage() {
     fileId: string,
     name: string,
   ) => {
+    e.preventDefault();
     cancelTouchDrag();
     dragTimer.current = setTimeout(() => {
       setTouchDrag({ type: "vault-file", fileId, name });
@@ -204,6 +205,7 @@ export default function MapPage() {
     name: string,
     permission: "R" | "W",
   ) => {
+    e.preventDefault();
     cancelTouchDrag();
     dragTimer.current = setTimeout(() => {
       setTouchDrag({ type: "vault-friend", friendId, name, permission });
@@ -214,6 +216,7 @@ export default function MapPage() {
   useEffect(() => {
     if (!touchDrag) return;
     const handleMove = (ev: TouchEvent) => {
+      ev.preventDefault();
       if (ev.touches.length) {
         setTouchPos({ x: ev.touches[0].clientX, y: ev.touches[0].clientY });
       }
@@ -603,11 +606,15 @@ export default function MapPage() {
                 <div
                   key={f.id}
                   draggable
-                  onDragStart={e=>
-                    e.dataTransfer.setData("application/json",
-                      JSON.stringify({ type:"vault-file", fileId:f.id })
-                    )
-                  }
+                  onDragStart={e=>{
+                    const img = new Image();
+                    img.src = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                    e.dataTransfer.setData(
+                      "application/json",
+                      JSON.stringify({ type: "vault-file", fileId: f.id })
+                    );
+                  }}
                   onTouchStart={e=>startFileTouchDrag(e,f.id,f.name)}
                   onTouchEnd={cancelTouchDrag}
                   onTouchMove={cancelTouchDrag}
@@ -647,15 +654,19 @@ export default function MapPage() {
                     <div
                       key={f.id}
                       draggable
-                      onDragStart={e=>
-                        e.dataTransfer.setData("application/json",
+                      onDragStart={e=>{
+                        const img = new Image();
+                        img.src = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+                        e.dataTransfer.setDragImage(img, 0, 0);
+                        e.dataTransfer.setData(
+                          "application/json",
                           JSON.stringify({
-                            type:"vault-friend",
-                            friendId:f.id,
-                            permission:perm
+                            type: "vault-friend",
+                            friendId: f.id,
+                            permission: perm
                           })
-                        )
-                      }
+                        );
+                      }}
                       onTouchStart={e=>startFriendTouchDrag(e,f.id,f.username,perm)}
                       onTouchEnd={cancelTouchDrag}
                       onTouchMove={cancelTouchDrag}
@@ -729,14 +740,7 @@ export default function MapPage() {
         />
       )}
 
-      {touchDrag && touchPos && (
-        <div
-          className="pointer-events-none fixed px-2 py-1 bg-orange-500 text-white rounded text-xs"
-          style={{ left: touchPos.x, top: touchPos.y, transform: 'translate(-50%, -50%)', zIndex: 1000 }}
-        >
-          {touchDrag.name}
-        </div>
-      )}
+      {/* Drag preview removed on touch devices */}
     </div>
   );
 }
