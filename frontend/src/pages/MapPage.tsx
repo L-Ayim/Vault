@@ -539,7 +539,7 @@ export default function MapPage() {
             <div className="mb-2">
               <span className="text-gray-300 font-medium text-xs">Files</span>
               <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
-                {nfData.nodeFiles.length > 0 ? (
+                {nfData?.nodeFiles?.length > 0 ? (
                   nfData.nodeFiles.map((nf:any)=>(
                     <li
                       key={nf.file.id}
