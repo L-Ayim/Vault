@@ -16,6 +16,7 @@ $envLines = @(
     "HOST_IP=${ip}"
     "CORS_ALLOWED_ORIGINS=http://${ip}:5173"
     "VITE_GRAPHQL_URL=http://${ip}:8000/graphql/"
+    "VITE_GRAPHQL_WS_URL=ws://${ip}:8000/graphql/"
 )
 $envLines | Set-Content -Path ".env" -Encoding UTF8
 
@@ -26,6 +27,8 @@ Write-Host "  http://${ip}:5173"
 Write-Host ""
 Write-Host "GraphQL endpoint:"
 Write-Host "  http://${ip}:8000/graphql/"
+Write-Host "GraphQL WebSocket endpoint:"
+Write-Host "  ws://${ip}:8000/graphql/"
 Write-Host ""
 
 # 4. Launch Docker Compose
