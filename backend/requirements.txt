@@ -7,3 +7,5 @@ graphene-django==3.2.3
 django-graphql-jwt>=0.4.0
 graphene-file-upload==1.3.0
 django-cors-headers>=3.13.0
+channels==4.2.2
+django-channels-graphql-ws==1.0.0rc7

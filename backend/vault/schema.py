@@ -2,9 +2,11 @@
 
 import graphene, graphql_jwt
 from accounts.schema import AccountsQuery, AccountsMutation
-from files.schema    import FilesQuery, FilesMutation
-from graph.schema    import GraphQuery,  GraphMutation
-from chat.schema     import ChatQuery,   ChatMutation
+from files.schema import FilesQuery, FilesMutation
+from graph.schema import GraphQuery, GraphMutation
+from chat.schema import ChatQuery, ChatMutation
+from .subscriptions import NodeUpdates
+
 
 class Query(
     AccountsQuery,
@@ -12,7 +14,9 @@ class Query(
     GraphQuery,
     ChatQuery,
     graphene.ObjectType,
-): pass
+):
+    pass
+
 
 class Mutation(
     AccountsMutation,
@@ -21,8 +25,13 @@ class Mutation(
     ChatMutation,
     graphene.ObjectType,
 ):
-    tokenAuth   = graphql_jwt.ObtainJSONWebToken.Field()
+    tokenAuth = graphql_jwt.ObtainJSONWebToken.Field()
     verifyToken = graphql_jwt.Verify.Field()
-    refreshToken= graphql_jwt.Refresh.Field()
+    refreshToken = graphql_jwt.Refresh.Field()
 
-schema = graphene.Schema(query=Query, mutation=Mutation)
+
+class Subscription(graphene.ObjectType):
+    node_updates = NodeUpdates.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutation, subscription=Subscription)
