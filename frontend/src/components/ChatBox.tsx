@@ -3,9 +3,15 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useSubscription } from "@apollo/client";
-import { QUERY_CHANNEL_MESSAGES, MUTATION_SEND_MESSAGE, SUBSCRIPTION_MESSAGE_UPDATES } from "../graphql/operations";
-import { Send, X } from "lucide-react";
+import {
+  QUERY_CHANNEL_MESSAGES,
+  MUTATION_SEND_MESSAGE,
+  SUBSCRIPTION_MESSAGE_UPDATES,
+} from "../graphql/operations";
+import { Send, X, Phone, Video } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
+import CallPanel from "./CallPanel";
 
 interface Message {
   id: string;
@@ -25,6 +31,23 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
 
   const [messageText, setMessageText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const processedIds = useRef<Set<string>>(new Set());
+
+  const CALL_PREFIX = "__CALL__:";
+
+  const [sendSignalMutation] = useMutation(MUTATION_SEND_MESSAGE);
+
+  const {
+    localStream,
+    remoteStream,
+    startCall,
+    handleSignal,
+    endCall,
+    active,
+    isVideo,
+  } = useWebRTC((msg: SignalMessage) =>
+    sendSignalMutation({ variables: { channelId, text: CALL_PREFIX + JSON.stringify(msg) } })
+  );
 
   const { data, loading, error, refetch } = useQuery<{ channelMessages: Message[] }>(
     QUERY_CHANNEL_MESSAGES,
@@ -54,6 +77,24 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [data?.channelMessages]);
+
+  // Process call signaling messages
+  useEffect(() => {
+    if (!data) return;
+    data.channelMessages.forEach((m) => {
+      if (!processedIds.current.has(m.id)) {
+        processedIds.current.add(m.id);
+        if (m.text && m.text.startsWith(CALL_PREFIX) && m.sender.id !== userId) {
+          try {
+            const payload: SignalMessage = JSON.parse(m.text.slice(CALL_PREFIX.length));
+            handleSignal(payload);
+          } catch {
+            /* ignore malformed */
+          }
+        }
+      }
+    });
+  }, [data, handleSignal, userId]);
 
   const handleSend = () => {
     if (!channelId || !messageText.trim()) return;
@@ -140,7 +181,7 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
       </div>
 
       {/* Input */}
-      <div className="p-2 border-t border-neutral-700 flex space-x-2">
+      <div className="p-2 border-t border-neutral-700 flex space-x-2 items-center">
         <textarea
           rows={1}
           value={messageText}
@@ -157,7 +198,29 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
         >
           <Send size={16} />
         </button>
+        <button
+          onClick={() => startCall(false)}
+          disabled={!channelId || active}
+          className="p-2 bg-green-600 hover:bg-green-700 rounded-md focus:outline-none disabled:opacity-50 text-white"
+        >
+          <Phone size={16} />
+        </button>
+        <button
+          onClick={() => startCall(true)}
+          disabled={!channelId || active}
+          className="p-2 bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none disabled:opacity-50 text-white"
+        >
+          <Video size={16} />
+        </button>
       </div>
+      {active && (
+        <CallPanel
+          localStream={localStream}
+          remoteStream={remoteStream}
+          onEnd={endCall}
+          video={isVideo}
+        />
+      )}
     </div>
   );
 }
