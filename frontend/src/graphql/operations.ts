@@ -275,6 +275,28 @@ export const MUTATION_UPDATE_PROFILE = gql`
   }
 `;
 
+// 13) Update the authenticated user's account info
+export const MUTATION_UPDATE_USER = gql`
+  mutation UpdateUser($username: String, $email: String, $password: String) {
+    updateUser(username: $username, email: $email, password: $password) {
+      user {
+        id
+        username
+        email
+      }
+    }
+  }
+`;
+
+// 14) Delete the current user's account
+export const MUTATION_DELETE_ACCOUNT = gql`
+  mutation DeleteAccount {
+    deleteAccount {
+      ok
+    }
+  }
+`;
+
 /* ──────────────────────────────────────────────────────────────────────────────
    FILES (UPLOADS / VERSIONS / SHARES)
    ────────────────────────────────────────────────────────────────────────────── */
