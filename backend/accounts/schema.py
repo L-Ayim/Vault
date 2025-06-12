@@ -281,6 +281,31 @@ class JoinGroupByInvite(graphene.Mutation):
         return JoinGroupByInvite(group=grp)
 
 
+class UpdateProfile(graphene.Mutation):
+    """Update the authenticated user's profile fields."""
+
+    profile = graphene.Field(ProfileType)
+
+    class Arguments:
+        avatar_url = graphene.String()
+        bio = graphene.String()
+        is_public = graphene.Boolean()
+
+    def mutate(self, info, avatar_url=None, bio=None, is_public=None):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        profile = user.profile
+        if avatar_url is not None:
+            profile.avatar_url = avatar_url
+        if bio is not None:
+            profile.bio = bio
+        if is_public is not None:
+            profile.is_public = is_public
+        profile.save()
+        return UpdateProfile(profile=profile)
+
+
 class AccountsMutation(graphene.ObjectType):
     create_user          = CreateUser.Field()
     create_friend_invite = CreateFriendInvite.Field()
@@ -288,3 +313,4 @@ class AccountsMutation(graphene.ObjectType):
     revoke_friend_invite = RevokeFriendInvite.Field()
     create_group         = CreateGroup.Field()
     join_group_by_invite = JoinGroupByInvite.Field()
+    update_profile       = UpdateProfile.Field()
