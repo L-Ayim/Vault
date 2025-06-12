@@ -9,6 +9,7 @@ from graphene_django.types import DjangoObjectType
 from graphql_jwt.shortcuts import get_token
 
 from .models import Profile, Invite, Friendship, Group, GroupMember
+from graphene.types.generic import GenericScalar
 from files.models import File
 
 User = get_user_model()
@@ -17,10 +18,11 @@ User = get_user_model()
 
 class ProfileType(DjangoObjectType):
     avatar_url = graphene.String()
+    preferences = GenericScalar()
 
     class Meta:
         model = Profile
-        fields = ("avatar_url", "bio")
+        fields = ("avatar_url", "bio", "preferences")
 
     def resolve_avatar_url(self, info):
         if self.avatar_file:
@@ -302,8 +304,9 @@ class UpdateProfile(graphene.Mutation):
         avatar_url = graphene.String()
         avatar_file_id = graphene.ID()
         bio = graphene.String()
+        preferences = GenericScalar()
 
-    def mutate(self, info, avatar_url=None, avatar_file_id=None, bio=None):
+    def mutate(self, info, avatar_url=None, avatar_file_id=None, bio=None, preferences=None):
         user = info.context.user
         if user.is_anonymous:
             raise GraphQLError("Login required.")
@@ -319,6 +322,8 @@ class UpdateProfile(graphene.Mutation):
             profile.avatar_url = info.context.build_absolute_uri(file_obj.upload.url)
         if bio is not None:
             profile.bio = bio
+        if preferences is not None:
+            profile.preferences = preferences
         profile.save()
         return UpdateProfile(profile=profile)
 

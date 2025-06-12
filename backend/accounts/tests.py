@@ -67,3 +67,14 @@ class UpdateProfileTests(TestCase):
 
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.avatar_file_id, file.id)
+
+    def test_update_profile_preferences(self):
+        from .schema import UpdateProfile
+
+        UpdateProfile().mutate(
+            self._info(),
+            preferences={"sidebar": True}
+        )
+
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.preferences, {"sidebar": True})
