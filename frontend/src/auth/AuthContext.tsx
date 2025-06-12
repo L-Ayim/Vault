@@ -28,9 +28,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   // Use QUERY_ME to fetch current user whenever there is a token
-  const [loadMe, { data, loading, error }] = useLazyQuery<{ me: User }>(QUERY_ME, {
+  const [loadMe, { data, loading: queryLoading, error }] = useLazyQuery<{ me: User }>(QUERY_ME, {
     fetchPolicy: "network-only",
   });
 
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("token");
     if (token) {
       loadMe();
+    } else {
+      setInitializing(false);
     }
   }, [loadMe]);
 
@@ -47,10 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data?.me) {
       setUser(data.me);
       setIsAuthenticated(true);
+      setInitializing(false);
     } else if (error) {
       localStorage.removeItem("token");
       setUser(null);
       setIsAuthenticated(false);
+      setInitializing(false);
     }
   }, [data, error]);
 
@@ -68,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    loading,
+    loading: initializing || queryLoading,
     isAuthenticated,
     login,
     logout,
