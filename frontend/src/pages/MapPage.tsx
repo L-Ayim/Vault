@@ -585,35 +585,51 @@ export default function MapPage() {
           <div className="absolute top-0 left-0 h-1 w-full bg-orange-500 animate-pulse"/>
         )}
 
-        <div className="flex items-start justify-between">
-          <button
-            onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
-            className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-          >
-            <MessageCircle size={12} className="text-white" />
-          </button>
+        {collapsed ? (
+          <div className="flex items-center justify-between px-2">
+            <span className="text-white text-sm truncate mr-2">{data.name}</span>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+                className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+              >
+                <MessageCircle size={12} className="text-white" />
+              </button>
+              <button
+                onClick={() => setCollapsed(false)}
+                className="p-1 bg-neutral-700 rounded"
+              >
+                <ChevronDown size={12} className="text-white" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start justify-between">
+            <button
+              onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+              className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+            >
+              <MessageCircle size={12} className="text-white" />
+            </button>
 
-          <button
-            onClick={() => setCollapsed(c => !c)}
-            className="p-1 bg-neutral-700 rounded"
-          >
-            {collapsed ? (
-              <ChevronDown size={12} className="text-white" />
-            ) : (
-              <ChevronUp size={12} className="text-white" />
-            )}
-          </button>
-        </div>
+            <button
+              onClick={() => setCollapsed(c => !c)}
+              className="p-1 bg-neutral-700 rounded"
+            >
+              {collapsed ? (
+                <ChevronDown size={12} className="text-white" />
+              ) : (
+                <ChevronUp size={12} className="text-white" />
+              )}
+            </button>
+          </div>
+        )}
 
         <Handle type="target" position={Position.Left} style={handleStyle} />
         <Handle type="source" position={Position.Right} style={handleStyle} />
 
         {/* Name */}
-        {collapsed ? (
-          <div className="h-full flex items-center justify-center px-2">
-            <span className="text-white text-sm truncate">{data.name}</span>
-          </div>
-        ) : (
+        {!collapsed && (
           <div className="mb-3">
             <label className="block text-gray-300 text-sm mb-1">Name</label>
             <input
