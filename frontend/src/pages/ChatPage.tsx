@@ -35,7 +35,7 @@ import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
 import CallPanel from "../components/CallPanel";
 
 interface Friend { id: string; username: string }
-interface Group { id: string; name: string }
+interface Group { id: string; name: string; inviteCode: string }
 interface NodeItem { id: string; name: string }
 interface Message {
   id: string
@@ -64,6 +64,7 @@ export default function ChatPage() {
   const [newGroupName, setNewGroupName] = useState("");
   const [groupInviteCode, setGroupInviteCode] = useState<string | null>(null);
   const [copiedGroup, setCopiedGroup] = useState(false);
+  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null);
   const [joinGroupCode, setJoinGroupCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -305,10 +306,19 @@ export default function ChatPage() {
       .then(()=>{ setCopiedFriend(true); setTimeout(()=>setCopiedFriend(false),2000) });
   };
 
-  const handleCopyGroup = () => {
-    if(!groupInviteCode) return;
-    navigator.clipboard.writeText(`${window.location.origin}/chat?group=${groupInviteCode}`)
-      .then(()=>{ setCopiedGroup(true); setTimeout(()=>setCopiedGroup(false),2000) });
+  const handleCopyGroup = (code?: string, id?: string) => {
+    const invite = code || groupInviteCode;
+    if(!invite) return;
+    navigator.clipboard.writeText(`${window.location.origin}/chat?group=${invite}`)
+      .then(()=>{
+        if(id){
+          setCopiedGroupId(id);
+          setTimeout(()=>setCopiedGroupId(null),2000);
+        } else {
+          setCopiedGroup(true);
+          setTimeout(()=>setCopiedGroup(false),2000);
+        }
+      });
   };
 
   if(friendsLoading) return <div className="p-4">Loading…</div>;
@@ -363,18 +373,25 @@ export default function ChatPage() {
                 {!groupsLoading && !groupsError && (
                   groupsData && groupsData.myGroups.length ? (
                     groupsData.myGroups.map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => selectGroup(g.id)}
-                        className={`
-                          w-full text-left px-3 py-2 rounded-md focus:outline-none
-                          ${selectedGroupId === g.id
-                            ? "bg-red-600"
-                            : "bg-orange-500 hover:bg-orange-600"}
-                        `}
-                      >
-                        {g.name}
-                      </button>
+                      <div key={g.id} className="flex items-center space-x-2">
+                        <button
+                          onClick={() => selectGroup(g.id)}
+                          className={`
+                            flex-1 text-left px-3 py-2 rounded-md focus:outline-none
+                            ${selectedGroupId === g.id
+                              ? "bg-red-600"
+                              : "bg-orange-500 hover:bg-orange-600"}
+                          `}
+                        >
+                          {g.name}
+                        </button>
+                        <button
+                          onClick={() => handleCopyGroup(g.inviteCode, g.id)}
+                          className={`p-2 rounded ${copiedGroupId === g.id ? "bg-red-600" : "bg-neutral-700 hover:bg-neutral-600"}`}
+                        >
+                          {copiedGroupId === g.id ? "✓" : <Clipboard size={16} />}
+                        </button>
+                      </div>
                     ))
                   ) : (
                     <p className="text-gray-400 text-sm">No groups available.</p>
