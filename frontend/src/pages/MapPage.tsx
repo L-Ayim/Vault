@@ -576,7 +576,7 @@ export default function MapPage() {
           fontFamily: "'Segoe UI',sans-serif",
           color: "#F1F5F9",
           height: collapsed ? "2.5rem" : undefined,
-          overflow: collapsed ? "hidden" : undefined,
+          overflow: "hidden",
           transition: "height 0.2s",
         }}
         onMouseDown={e => e.stopPropagation()}
