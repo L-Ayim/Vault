@@ -10,6 +10,24 @@ Vault is a full-stack application featuring:
 
 The backend is built with Django + Graphene (GraphQL) + MySQL. The frontend uses Vite + React + TypeScript + Tailwind, with Apollo Client for GraphQL. Docker Compose orchestrates all services for easy local development.
 
+## Quick Start
+
+1. **Install Docker Desktop** from [docker.com](https://www.docker.com/) if you do not have Docker yet.
+2. **Download this project**. You can either clone it with Git or simply use the "Download ZIP" button on GitHub and unzip it.
+3. **Run the helper script** (Windows PowerShell):
+
+   ```powershell
+   .\start-vault.ps1
+   ```
+
+   The script automatically detects your local network address, creates a `.env` file and starts the Docker containers.
+4. **Open the displayed address** (for example `http://192.168.1.42:5173`) in your web browser to access the Vault interface.
+5. When finished, press <kbd>Ctrl+C</kbd> in the PowerShell window to stop the containers, or run `docker compose down`.
+
+For macOS or Linux users, open a terminal in the project folder and run `docker compose up --build` instead of the PowerShell script.
+
+To start over from a clean state, run `./reset-vault.ps1` which drops the database and clears uploaded files.
+
 ---
 
 ## Table of Contents
