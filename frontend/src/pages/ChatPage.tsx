@@ -18,6 +18,7 @@ import {
   MUTATION_REDEEM_FRIEND_INVITE,
   MUTATION_CREATE_GROUP,
   MUTATION_JOIN_GROUP_BY_INVITE,
+  MUTATION_DELETE_GROUP,
   SUBSCRIPTION_NODE_UPDATES,
   SUBSCRIPTION_MESSAGE_UPDATES,
 } from "../graphql/operations";
@@ -31,6 +32,7 @@ import {
   ChevronRight,
   ChevronLeft,
   UserPlus,
+  Trash2,
 } from "lucide-react";
 
 function copyToClipboard(text: string): Promise<void> {
@@ -52,7 +54,12 @@ function copyToClipboard(text: string): Promise<void> {
 }
 
 interface Friend { id: string; username: string }
-interface Group { id: string; name: string; inviteCode: string }
+interface Group {
+  id: string;
+  name: string;
+  inviteCode: string;
+  owner: { id: string };
+}
 interface NodeItem { id: string; name: string }
 interface Message {
   id: string
@@ -108,7 +115,7 @@ export default function ChatPage() {
   const { data: nodesData, loading: nodesLoading, error: nodesError, refetch: refetchNodes } =
     useQuery<{ myNodes: NodeItem[] }>(QUERY_MY_NODES, { variables:{ limit:50, offset:0 } });
 
-  const { data: channelsData, refetch: refetchChannels } =
+  const { refetch: refetchChannels } =
     useQuery<{ myChannels: ChannelInfo[] }>(QUERY_MY_CHANNELS);
 
   const { data: messagesData, loading: messagesLoading, error: messagesError, refetch: refetchMessages } =
@@ -213,6 +220,12 @@ export default function ChatPage() {
         setPanelOpen(false);
       },
     });
+
+  const [deleteGroup] = useMutation(MUTATION_DELETE_GROUP, {
+    onCompleted: () => {
+      refetchGroups();
+    },
+  });
 
   useEffect(() => {
     const f = searchParams.get("invite");
@@ -321,6 +334,16 @@ export default function ChatPage() {
       });
   };
 
+  const handleDeleteGroup = (id: string) => {
+    if(confirm("Delete this group?")){
+      if(selectedGroupId === id){
+        setSelectedGroupId(null);
+        setSelectedChannelId(null);
+      }
+      deleteGroup({ variables:{ groupId:id } });
+    }
+  };
+
   if(friendsLoading) return <div className="p-4">Loading…</div>;
   if(friendsError)  return <div className="p-4">Error loading friends</div>;
 
@@ -394,6 +417,14 @@ export default function ChatPage() {
                         >
                           {copiedGroupId === g.id ? "✓" : <Clipboard size={16} />}
                         </button>
+                        {user?.id === g.owner.id && (
+                          <button
+                            onClick={() => handleDeleteGroup(g.id)}
+                            className="p-2 bg-neutral-700 hover:bg-red-600 rounded"
+                          >
+                            <Trash2 size={16} className="text-white" />
+                          </button>
+                        )}
                       </div>
                     ))}
                     </div>
