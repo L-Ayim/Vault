@@ -244,13 +244,13 @@ Compose so the containers pick up the new settings.
 
 ### Frontend
 
-```bash
-cd ../frontend
-# dependencies are installed automatically on first dev run
-```
+1. **Install Node dependencies**:
+   \`\`\`bash
+   cd ../frontend
+   npm install
+   \`\`\`
 
-
-1. **Set environment variable** (point Apollo to your local Django):
+2. **Set environment variable** (point Apollo to your local Django):
    \`\`\`bash
    export VITE_GRAPHQL_URL=http://127.0.0.1:8000/graphql/
    export VITE_GRAPHQL_WS_URL=ws://127.0.0.1:8000/graphql/
@@ -261,13 +261,13 @@ cd ../frontend
    # $env:CHOKIDAR_USEPOLLING="true"
    \`\`\`
 
-2. **Start development server** (installs dependencies on first run):
+3. **Start development server**:
    \`\`\`bash
    npm run dev
    \`\`\`
    The frontend will be available at \`http://localhost:5173/\`.
 
-3. **Build for production & copy files**:
+4. **Build for production & copy files**:
    ```bash
    npm run build
    cp dist/index.html ../backend/templates/index.html
@@ -289,6 +289,7 @@ cd ../frontend
 
 ### Frontend (inside \`frontend/\`)
 
+- \`npm install\`  
 - \`npm run dev\` – Start Vite dev server on \`:5173\`  
 - \`npm run build\` – Produce a production build (output in \`dist/\`)  
 - \`npm run preview\` – Preview the production build on a local static server  
