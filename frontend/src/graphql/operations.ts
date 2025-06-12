@@ -270,14 +270,6 @@ export const MUTATION_UPDATE_USER = gql`
   }
 `;
 
-// 14) Delete the current user's account
-export const MUTATION_DELETE_ACCOUNT = gql`
-  mutation DeleteAccount {
-    deleteAccount {
-      ok
-    }
-  }
-`;
 
 /* ──────────────────────────────────────────────────────────────────────────────
    FILES (UPLOADS / VERSIONS / SHARES)

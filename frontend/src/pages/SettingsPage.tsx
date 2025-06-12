@@ -9,9 +9,7 @@ import {
   QUERY_ME,
   MUTATION_UPLOAD_FILE,
   MUTATION_UPDATE_PROFILE,
-  MUTATION_DELETE_ACCOUNT,
 } from "../graphql/operations";
-import { useAuth } from "../auth/AuthContext";
 
 interface MeResult {
   me: {
@@ -53,17 +51,6 @@ export default function SettingsPage() {
     },
   });
 
-  const { logout } = useAuth();
-
-  const [deleteAccount] = useMutation(MUTATION_DELETE_ACCOUNT, {
-    onCompleted: () => {
-      logout();
-      navigate("/signup");
-    },
-    onError: (err: ApolloError) => {
-      setErrorMsg(err.message.replace("GraphQL error: ", ""));
-    },
-  });
 
   const profile = data?.me.profile;
   const email = data?.me.email;
@@ -121,16 +108,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("Delete your account permanently?")) return;
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      await deleteAccount();
-    } catch {
-      // onError handles message
-    }
-  };
 
   // 5) If no user or data, redirect to login
   if (!username) {
@@ -216,20 +193,6 @@ export default function SettingsPage() {
               )}
 
             </form>
-          </section>
-
-          <section className="bg-neutral-800/75 p-6 rounded-lg shadow">
-            {successMsg && (
-              <p className="text-green-500 mb-2">{successMsg}</p>
-            )}
-            {errorMsg && <p className="text-red-400 mb-2">{errorMsg}</p>}
-
-            <button
-              onClick={handleDeleteAccount}
-              className="px-4 py-2 bg-red-700 rounded-md hover:bg-red-800 transition-colors"
-            >
-              Delete Account
-            </button>
           </section>
         </div>
       </main>
