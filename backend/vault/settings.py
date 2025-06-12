@@ -59,6 +59,17 @@ CORS_ALLOWED_ORIGINS = [o for o in _cors_env.split(",") if o] or [
 ]
 CORS_ALLOW_CREDENTIALS = True  # Allow credentialed requests (cookies/JWT)
 
+# ─── CSRF CONFIGURATION ─────────────────────────────────────────────
+_csrf_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [o for o in _csrf_env.split(",") if o] or [
+    # When you run Vite locally with `npm run dev`:
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+
+    # When you run the Vite container inside Docker Compose, service name is "frontend":
+    "http://frontend:5173",
+]
+
 # ─── URLCONF & TEMPLATES ────────────────────────────────────────────
 ROOT_URLCONF = 'vault.urls'
 
