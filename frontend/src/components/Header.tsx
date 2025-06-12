@@ -23,6 +23,10 @@ export default function Header({ children }: HeaderProps) {
                 src={user.profile.avatarUrl}
                 alt="Avatar"
                 className="h-8 w-8 rounded-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  (e.target as HTMLImageElement).closest("div")?.classList.remove("hidden");
+                }}
               />
             ) : (
               <div className="h-8 w-8 rounded-full bg-neutral-700 flex items-center justify-center text-gray-300">

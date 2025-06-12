@@ -9,6 +9,7 @@ import {
   QUERY_MY_GROUPS,
   QUERY_MY_NODES,
   QUERY_CHANNEL_MESSAGES,
+  QUERY_MY_CHANNELS,
   MUTATION_CREATE_DIRECT_CHANNEL,
   MUTATION_JOIN_GROUP_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
@@ -59,6 +60,14 @@ interface Message {
   text: string | null
   createdAt: string
 }
+interface ChannelInfo {
+  id: string
+  channelType: string
+  unreadCount: number
+  directUser1?: { id: string }
+  directUser2?: { id: string }
+  group?: { id: string }
+}
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -100,6 +109,22 @@ export default function ChatPage() {
   const { data: nodesData, loading: nodesLoading, error: nodesError, refetch: refetchNodes } =
     useQuery<{ myNodes: NodeItem[] }>(QUERY_MY_NODES, { variables:{ limit:50, offset:0 } });
 
+  const { data: channelsData, refetch: refetchChannels } =
+    useQuery<{ myChannels: ChannelInfo[] }>(QUERY_MY_CHANNELS);
+
+  const unreadMap = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    channelsData?.myChannels.forEach(ch => {
+      if (ch.channelType === "DIRECT") {
+        const other = ch.directUser1?.id === user?.id ? ch.directUser2?.id : ch.directUser1?.id;
+        if (other) map[other] = ch.unreadCount;
+      } else if (ch.channelType === "GROUP" && ch.group) {
+        map[ch.group.id] = ch.unreadCount;
+      }
+    });
+    return map;
+  }, [channelsData, user?.id]);
+
   const { data: messagesData, loading: messagesLoading, error: messagesError, refetch: refetchMessages } =
     useQuery<{ channelMessages: Message[] }>(QUERY_CHANNEL_MESSAGES, {
       variables:{ channelId:selectedChannelId||"", limit:50, offset:0 },
@@ -118,16 +143,18 @@ export default function ChatPage() {
       refetchFriends();
       refetchGroups();
       refetchNodes();
+      refetchChannels();
       if (selectedChannelId) {
         refetchMessages();
       }
     }
-  }, [subData, refetchFriends, refetchGroups, refetchNodes, refetchMessages, selectedChannelId]);
+  }, [subData, refetchFriends, refetchGroups, refetchNodes, refetchMessages, refetchChannels, selectedChannelId]);
   useEffect(() => {
     if (msgSub && selectedChannelId) {
       refetchMessages();
     }
-  }, [msgSub, selectedChannelId, refetchMessages]);
+    if (msgSub) refetchChannels();
+  }, [msgSub, selectedChannelId, refetchMessages, refetchChannels]);
 
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
     onCompleted: ({ createDirectChannel }) => {
@@ -339,13 +366,18 @@ export default function ChatPage() {
                       key={f.id}
                       onClick={() => selectFriend(f.id)}
                       className={`
-                        w-full text-left px-3 py-2 rounded-md focus:outline-none
+                        w-full text-left px-3 py-2 rounded-md focus:outline-none flex justify-between items-center
                         ${selectedFriendId === f.id
                           ? "bg-red-600"
                           : "bg-orange-500 hover:bg-orange-600"}
                       `}
                     >
-                    {f.username}
+                      <span>{f.username}</span>
+                      {unreadMap[f.id] ? (
+                        <span className="ml-2 bg-red-700 text-white rounded-full px-2 text-xs">
+                          {unreadMap[f.id]}
+                        </span>
+                      ) : null}
                     </button>
                   ))
                 ) : (
@@ -366,13 +398,18 @@ export default function ChatPage() {
                         <button
                           onClick={() => selectGroup(g.id)}
                           className={`
-                            flex-1 text-left px-3 py-2 rounded-md focus:outline-none
+                            flex-1 text-left px-3 py-2 rounded-md focus:outline-none flex justify-between items-center
                             ${selectedGroupId === g.id
                               ? "bg-red-600"
                               : "bg-orange-500 hover:bg-orange-600"}
                           `}
                         >
-                          {copiedGroupId === g.id ? "Copied" : g.name}
+                          <span>{copiedGroupId === g.id ? "Copied" : g.name}</span>
+                          {unreadMap[g.id] ? (
+                            <span className="ml-2 bg-red-700 text-white rounded-full px-2 text-xs">
+                              {unreadMap[g.id]}
+                            </span>
+                          ) : null}
                         </button>
                         <button
                           onClick={() => handleCopyGroup(g.inviteCode, g.id)}
