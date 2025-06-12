@@ -218,7 +218,8 @@ Compose so the containers pick up the new settings.
 Use `start-vault-prod.ps1` when deploying to a real server. The script asks for
 your domain and secret values, writes the necessary `.env` files with
 `DEBUG=False` and proper `ALLOWED_HOSTS`, builds the frontend, then launches the
-stack.
+stack. If you don't provide a domain, the script will try to use your server's
+`192.168.x.x` LAN IP as the default.
 
 ```powershell
 ./start-vault-prod.ps1
