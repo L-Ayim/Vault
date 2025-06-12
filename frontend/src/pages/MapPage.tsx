@@ -569,7 +569,7 @@ export default function MapPage() {
       <div
         onDragOver={onDragOver}
         onDrop={onDrop}
-        className={`relative bg-neutral-800/75 rounded-xl p-2 select-none flex flex-col ${
+        className={`relative bg-neutral-800/75 rounded-xl p-2 select-none flex flex-col w-60 ${
           collapsed ? "" : "space-y-2"
         } ${selected ? "ring-2 ring-orange-500" : ""}`}
         style={{
@@ -932,12 +932,6 @@ export default function MapPage() {
                           className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
                         >
                           <MessageCircle className="text-white" size={14} />
-                        </button>
-                        <button
-                          onClick={()=>joinGroupChannel({ variables:{ groupId:g.id } })}
-                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                        >
-                          <MessageCircle className="text-white" size={14}/>
                         </button>
                       </div>
                     </div>
