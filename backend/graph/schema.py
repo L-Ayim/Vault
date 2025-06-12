@@ -56,16 +56,22 @@ class NodeType(DjangoObjectType):
         if self.owner_id == user.id:
             return NodeShare.objects.filter(node=self)
 
-        # Otherwise, only allow if this user has a share on the node (R or W)
+        group_ids = user.group_memberships.values_list("group", flat=True)
+
+        # Check for any READ/WRITE share granted via user, group, or public
         has_access = NodeShare.objects.filter(
             node=self,
-            shared_with_user=user,
-            permission__in=[NodeShare.READ, NodeShare.WRITE]
+            permission__in=[NodeShare.READ, NodeShare.WRITE],
+        ).filter(
+            Q(shared_with_user=user)
+            | Q(shared_with_group__in=group_ids)
+            | Q(is_public=True)
         ).exists()
+
         if not has_access:
             raise GraphQLError("Permission denied.")
 
-        # They’re in the share list → return _all_ shares on the node
+        # Access confirmed → return all shares on the node
         return NodeShare.objects.filter(node=self)
 
 # ── Queries ──────────────────────────────────────────────────────────────────
