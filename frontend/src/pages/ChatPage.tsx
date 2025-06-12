@@ -100,6 +100,7 @@ export default function ChatPage() {
     endCall,
     active,
     isVideo,
+    error: mediaError,
   } = useWebRTC((msg: SignalMessage) => {
     if (selectedChannelId) {
       sendSignalMutation({
@@ -662,6 +663,9 @@ export default function ChatPage() {
               onEnd={endCall}
               video={isVideo}
             />
+          )}
+          {mediaError && (
+            <p className="text-red-400 text-center text-xs mt-2">{mediaError}</p>
           )}
           {error && <p className="text-red-400 text-center text-sm mt-2">{error}</p>}
         </main>
