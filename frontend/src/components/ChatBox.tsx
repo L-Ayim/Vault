@@ -145,7 +145,7 @@ export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
                 className={`flex ${mine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
+                  className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap ${
                     mine ? "bg-orange-500 text-white" : "bg-neutral-700 text-gray-100"
                   }`}
                 >

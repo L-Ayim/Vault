@@ -1,16 +1,10 @@
 // src/pages/SettingsPage.tsx
 
-import { useEffect, useState, useRef } from "react";
-import { useQuery, useMutation, ApolloError } from "@apollo/client";
+import { useEffect } from "react";
+import { useQuery } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
-import { User } from "lucide-react";
-import {
-  QUERY_ME,
-  MUTATION_UPLOAD_FILE,
-  MUTATION_UPDATE_PROFILE,
-} from "../graphql/operations";
-import { useAuth } from "../auth/AuthContext";
+import { QUERY_ME } from "../graphql/operations";
 
 interface MeResult {
   me: {
@@ -31,31 +25,14 @@ export default function SettingsPage() {
 
   // 2) Auth & navigation
   const navigate = useNavigate();
-  const { refresh } = useAuth();
 
   // 3) Fetch current user info
-  const { data, loading, error, refetch } = useQuery<MeResult>(QUERY_ME, {
+  const { data, loading, error } = useQuery<MeResult>(QUERY_ME, {
     fetchPolicy: "network-only",
   });
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [showAvatarOptions, setShowAvatarOptions] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const [uploadFile] = useMutation(MUTATION_UPLOAD_FILE);
-  const [updateProfile] = useMutation(MUTATION_UPDATE_PROFILE, {
-    onCompleted: async () => {
-      setSuccessMsg("Profile updated successfully.");
-      await refetch();
-    },
-    onError: (err: ApolloError) => {
-      setErrorMsg(err.message.replace("GraphQL error: ", ""));
-    },
-  });
 
 
-  const profile = data?.me.profile;
   const email = data?.me.email;
   const username = data?.me.username;
 
@@ -76,42 +53,7 @@ export default function SettingsPage() {
     );
   }
 
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files ? e.target.files[0] : null;
-    if (!file) return;
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      const res = await uploadFile({
-        variables: { name: file.name, upload: file },
-      });
-      await updateProfile({
-        variables: { avatarFileId: res.data.uploadFile.file.id },
-      });
-      await refetch();
-      refresh();
-    } catch (err) {
-      setErrorMsg((err as ApolloError).message.replace("GraphQL error: ", ""));
-    } finally {
-      setShowAvatarOptions(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
-
-  const handleRemoveAvatar = async () => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      await updateProfile({ variables: { avatarUrl: "" } });
-      setShowAvatarOptions(false);
-      refresh();
-    } catch {
-      // onError handles message
-    }
-  };
 
 
   // 5) If no user or data, redirect to login
@@ -135,21 +77,6 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
-                {profile?.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl}
-                    alt="Avatar"
-                    className="h-16 w-16 rounded-full object-cover cursor-pointer border-2 border-orange-500"
-                    onClick={() => setShowAvatarOptions((v) => !v)}
-                  />
-                ) : (
-                  <div
-                    className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400 cursor-pointer border-2 border-orange-500"
-                    onClick={() => setShowAvatarOptions((v) => !v)}
-                  >
-                    <User size={32} />
-                  </div>
-                )}
                 <div>
                   <p className="text-gray-300">
                     <span className="font-medium">Username:</span> {username}
@@ -162,42 +89,6 @@ export default function SettingsPage() {
 
             </div>
 
-            {successMsg && (
-              <p className="text-green-500 mt-4">{successMsg}</p>
-            )}
-            {errorMsg && <p className="text-red-400 mt-4">{errorMsg}</p>}
-
-            <form className="space-y-4 mt-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {showAvatarOptions && (
-                <div className="space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 bg-neutral-700 rounded hover:bg-neutral-600"
-                  >
-                    Upload Image
-                  </button>
-                  {profile?.avatarUrl && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveAvatar}
-                      className="px-3 py-1 bg-red-700 rounded hover:bg-red-800"
-                    >
-                      Remove Image
-                    </button>
-                  )}
-                </div>
-              )}
-
-            </form>
           </section>
         </div>
       </main>
