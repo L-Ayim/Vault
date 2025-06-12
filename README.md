@@ -18,12 +18,13 @@ The backend is built with Django + Graphene (GraphQL) + MySQL. The frontend uses
 2. [Prerequisites](#prerequisites)  
 3. [Repository Structure](#repository-structure)  
 4. [Environment Variables](#environment-variables)  
-5. [Getting Started with Docker](#getting-started-with-docker)  
-6. [Running Without Docker (Optional)](#running-without-docker-optional)  
-7. [Available Scripts](#available-scripts)  
-8. [Folder Breakdown](#folder-breakdown)  
-9. [Contributing](#contributing)  
-10. [License](#license)  
+5. [Getting Started with Docker](#getting-started-with-docker)
+6. [Production Setup](#production-setup)
+7. [Running Without Docker (Optional)](#running-without-docker-optional)
+8. [Available Scripts](#available-scripts)
+9. [Folder Breakdown](#folder-breakdown)
+10. [Contributing](#contributing)
+11. [License](#license)
 
 ---
 
@@ -209,6 +210,21 @@ Compose so the containers pick up the new settings.
    \`\`\`bash
    docker compose down
    \`\`\`
+
+---
+
+## Production Setup
+
+Use `start-vault-prod.ps1` when deploying to a real server. The script asks for
+your domain and secret values, writes the necessary `.env` files with
+`DEBUG=False` and proper `ALLOWED_HOSTS`, builds the frontend, then launches the
+stack.
+
+```powershell
+./start-vault-prod.ps1
+```
+
+Add `-d` if you prefer the containers to run in the background.
 
 ---
 
