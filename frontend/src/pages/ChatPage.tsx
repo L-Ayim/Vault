@@ -15,6 +15,8 @@ import {
   MUTATION_SEND_MESSAGE,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
+  MUTATION_CREATE_GROUP,
+  MUTATION_JOIN_GROUP_BY_INVITE,
   SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
@@ -27,6 +29,7 @@ import {
   ChevronLeft,
   Phone,
   Video,
+  UserPlus,
 } from "lucide-react";
 import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
 import CallPanel from "../components/CallPanel";
@@ -58,6 +61,10 @@ export default function ChatPage() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [redeemCode, setRedeemCode] = useState("");
   const [copiedFriend, setCopiedFriend] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [groupInviteCode, setGroupInviteCode] = useState<string | null>(null);
+  const [copiedGroup, setCopiedGroup] = useState(false);
+  const [joinGroupCode, setJoinGroupCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const processedIds = useRef<Set<string>>(new Set());
@@ -155,6 +162,15 @@ export default function ChatPage() {
     onCompleted: res => setInviteCode(res.createFriendInvite.invite.code),
   });
 
+  const [createGroup, { loading: creatingGroup, error: createGroupError }] =
+    useMutation(MUTATION_CREATE_GROUP, {
+      onCompleted: res => {
+        setGroupInviteCode(res.createGroup.group.inviteCode);
+        refetchGroups();
+        setNewGroupName("");
+      },
+    });
+
   const [redeemFriendInvite, { loading: redeeming, error: redeemError }] =
     useMutation(MUTATION_REDEEM_FRIEND_INVITE, {
       onCompleted: res => {
@@ -168,6 +184,17 @@ export default function ChatPage() {
       },
     });
 
+  const [joinGroupByInvite, { loading: joiningGroup, error: joinGroupError }] =
+    useMutation(MUTATION_JOIN_GROUP_BY_INVITE, {
+      onCompleted: res => {
+        const gid = res.joinGroupByInvite.group.id;
+        selectGroup(gid);
+        refetchGroups();
+        setJoinGroupCode("");
+        setPanelOpen(false);
+      },
+    });
+
   useEffect(() => {
     const f = searchParams.get("invite");
     if (f) {
@@ -176,6 +203,17 @@ export default function ChatPage() {
         /* ignore invalid URL */
       }
       redeemFriendInvite({ variables:{ code:raw } });
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const g = searchParams.get("group");
+    if (g) {
+      let raw = g;
+      try { raw = new URL(g).searchParams.get("group") || g; } catch {
+        /* ignore invalid URL */
+      }
+      joinGroupByInvite({ variables:{ inviteCode:raw } });
     }
   }, [searchParams]);
 
@@ -267,6 +305,12 @@ export default function ChatPage() {
       .then(()=>{ setCopiedFriend(true); setTimeout(()=>setCopiedFriend(false),2000) });
   };
 
+  const handleCopyGroup = () => {
+    if(!groupInviteCode) return;
+    navigator.clipboard.writeText(`${window.location.origin}/chat?group=${groupInviteCode}`)
+      .then(()=>{ setCopiedGroup(true); setTimeout(()=>setCopiedGroup(false),2000) });
+  };
+
   if(friendsLoading) return <div className="p-4">Loading…</div>;
   if(friendsError)  return <div className="p-4">Error loading friends</div>;
 
@@ -337,6 +381,76 @@ export default function ChatPage() {
                   )
                 )}
               </div>
+
+              <details className="border border-neutral-700 rounded-md p-3">
+                <summary className="cursor-pointer text-sm font-medium flex items-center">
+                  <UserPlus className="mr-2 text-orange-500" /> Create / Join Group
+                </summary>
+                <div className="mt-2 space-y-3">
+                  <div className="flex space-x-2 items-stretch">
+                    <input
+                      type="text"
+                      placeholder="New group name"
+                      value={newGroupName}
+                      onChange={e => setNewGroupName(e.target.value)}
+                      className="flex-1 px-2 py-1 bg-neutral-700 rounded-md text-sm"
+                    />
+                    <button
+                      onClick={() =>
+                        createGroup({ variables: { name: newGroupName.trim(), singleUse: false, maxInviteUses: 100 } })
+                      }
+                      disabled={creatingGroup || !newGroupName.trim()}
+                      className={`px-3 py-1 rounded ${creatingGroup ? "bg-neutral-600" : "bg-orange-500 hover:bg-orange-600"}`}
+                    >
+                      {creatingGroup ? "Creating…" : "Create"}
+                    </button>
+                  </div>
+                  {groupInviteCode && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        readOnly
+                        value={
+                          copiedGroup
+                            ? "Copied!"
+                            : `${window.location.origin}/chat?group=${groupInviteCode}`
+                        }
+                        className="flex-1 px-3 py-2 bg-neutral-700 rounded-md text-sm"
+                      />
+                      <button
+                        onClick={handleCopyGroup}
+                        className={`p-2 rounded ${copiedGroup ? "bg-red-600" : "bg-orange-500 hover:bg-orange-600"}`}
+                      >
+                        <Clipboard size={16} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Paste group invite link or code"
+                      value={joinGroupCode}
+                      onChange={e => setJoinGroupCode(e.target.value)}
+                      className="flex-1 px-2 py-1 bg-neutral-700 rounded-md text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const code = joinGroupCode.trim().replace(/.*group=/, "");
+                        joinGroupByInvite({ variables: { inviteCode: code } });
+                      }}
+                      disabled={joiningGroup}
+                      className={`px-3 py-1 rounded ${joiningGroup ? "bg-neutral-600" : "bg-orange-500 hover:bg-orange-600"}`}
+                    >
+                      {joiningGroup ? "Joining…" : "Join"}
+                    </button>
+                  </div>
+                  {createGroupError && (
+                    <p className="text-red-400 text-sm">{createGroupError.message}</p>
+                  )}
+                  {joinGroupError && (
+                    <p className="text-red-400 text-sm">{joinGroupError.message}</p>
+                  )}
+                </div>
+              </details>
 
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">Nodes</h3>
