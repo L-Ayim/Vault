@@ -252,6 +252,29 @@ export const MUTATION_JOIN_GROUP_BY_INVITE = gql`
   }
 `;
 
+// 12) Update the authenticated user's profile
+export const MUTATION_UPDATE_PROFILE = gql`
+  mutation UpdateProfile(
+    $avatarUrl: String
+    $avatarFileId: ID
+    $bio: String
+    $isPublic: Boolean
+  ) {
+    updateProfile(
+      avatarUrl: $avatarUrl
+      avatarFileId: $avatarFileId
+      bio: $bio
+      isPublic: $isPublic
+    ) {
+      profile {
+        avatarUrl
+        bio
+        isPublic
+      }
+    }
+  }
+`;
+
 /* ──────────────────────────────────────────────────────────────────────────────
    FILES (UPLOADS / VERSIONS / SHARES)
    ────────────────────────────────────────────────────────────────────────────── */
