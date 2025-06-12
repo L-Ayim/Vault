@@ -295,6 +295,23 @@ class JoinGroupByInvite(graphene.Mutation):
         return JoinGroupByInvite(group=grp)
 
 
+class DeleteGroup(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        group_id = graphene.ID(required=True)
+
+    def mutate(self, info, group_id):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        grp = Group.objects.filter(pk=group_id, owner=user).first()
+        if not grp:
+            raise GraphQLError("Only the group owner can delete the group.")
+        grp.delete()
+        return DeleteGroup(ok=True)
+
+
 class UpdateProfile(graphene.Mutation):
     """Update the authenticated user's profile fields."""
 
@@ -367,5 +384,6 @@ class AccountsMutation(graphene.ObjectType):
     revoke_friend_invite = RevokeFriendInvite.Field()
     create_group         = CreateGroup.Field()
     join_group_by_invite = JoinGroupByInvite.Field()
+    delete_group         = DeleteGroup.Field()
     update_profile       = UpdateProfile.Field()
     update_user          = UpdateUser.Field()

@@ -78,3 +78,32 @@ class UpdateProfileTests(TestCase):
 
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.preferences, {"sidebar": True})
+
+
+class DeleteGroupTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.owner = User.objects.create_user(username="owner", password="pw")
+        self.other = User.objects.create_user(username="other", password="pw")
+        self.grp = Group.objects.create(name="g", owner=self.owner)
+        self._info_owner = self._info_for(self.owner)
+        self._info_other = self._info_for(self.other)
+
+    def _info_for(self, user):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(context=SimpleNamespace(user=user))
+
+    def test_owner_can_delete(self):
+        from .schema import DeleteGroup
+
+        DeleteGroup().mutate(self._info_owner, group_id=self.grp.id)
+        self.assertFalse(Group.objects.filter(id=self.grp.id).exists())
+
+    def test_non_owner_cannot_delete(self):
+        from .schema import DeleteGroup
+        from graphql import GraphQLError
+
+        with self.assertRaises(GraphQLError):
+            DeleteGroup().mutate(self._info_other, group_id=self.grp.id)
+        self.assertTrue(Group.objects.filter(id=self.grp.id).exists())
