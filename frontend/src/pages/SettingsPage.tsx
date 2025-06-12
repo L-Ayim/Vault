@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import { User } from "lucide-react";
 import {
   QUERY_ME,
   MUTATION_UPLOAD_FILE,
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                   />
                 ) : (
                   <div className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400">
-                    N/A
+                    <User size={32} />
                   </div>
                 )}
                 <div>

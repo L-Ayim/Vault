@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Menu } from "@headlessui/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import React from "react";
 
@@ -26,7 +26,7 @@ export default function Header({ children }: HeaderProps) {
               />
             ) : (
               <div className="h-8 w-8 rounded-full bg-neutral-700 flex items-center justify-center text-gray-300">
-                {user?.username?.charAt(0).toUpperCase()}
+                <User size={16} />
               </div>
             )}
             <span className="text-gray-200 hidden sm:block">{user?.username}</span>
