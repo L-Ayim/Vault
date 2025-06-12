@@ -20,6 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string) => void;
   logout: () => void;
+  refresh: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,12 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
+  const refresh = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      loadMe();
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
     isAuthenticated,
     login,
     logout,
+    refresh,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

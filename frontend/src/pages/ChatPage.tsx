@@ -18,6 +18,7 @@ import {
   MUTATION_CREATE_GROUP,
   MUTATION_JOIN_GROUP_BY_INVITE,
   SUBSCRIPTION_NODE_UPDATES,
+  SUBSCRIPTION_MESSAGE_UPDATES,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
 import usePersistentState from "../hooks/usePersistentState";
@@ -28,12 +29,8 @@ import {
   Send,
   ChevronRight,
   ChevronLeft,
-  Phone,
-  Video,
   UserPlus,
 } from "lucide-react";
-import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
-import CallPanel from "../components/CallPanel";
 
 function copyToClipboard(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -90,31 +87,7 @@ export default function ChatPage() {
   const [joinGroupCode, setJoinGroupCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const processedIds = useRef<Set<string>>(new Set());
-
-  const CALL_PREFIX = "__CALL__:";
-
-  const [sendSignalMutation] = useMutation(MUTATION_SEND_MESSAGE);
-
-  const {
-    localStream,
-    remoteStream,
-    startCall,
-    handleSignal,
-    endCall,
-    active,
-    isVideo,
-    error: mediaError,
-  } = useWebRTC((msg: SignalMessage) => {
-    if (selectedChannelId) {
-      sendSignalMutation({
-        variables: {
-          channelId: selectedChannelId,
-          text: CALL_PREFIX + JSON.stringify(msg),
-        },
-      });
-    }
-  });
+  // WebRTC removed
 
   useEffect(() => { document.title = "Chat" }, []);
 
@@ -136,6 +109,10 @@ export default function ChatPage() {
 
   // Subscribe for updates and refetch lists when events fire
   const { data: subData } = useSubscription(SUBSCRIPTION_NODE_UPDATES);
+  const { data: msgSub } = useSubscription(SUBSCRIPTION_MESSAGE_UPDATES, {
+    variables: { channelId: selectedChannelId || "" },
+    skip: !selectedChannelId,
+  });
   useEffect(() => {
     if (subData) {
       refetchFriends();
@@ -146,6 +123,11 @@ export default function ChatPage() {
       }
     }
   }, [subData, refetchFriends, refetchGroups, refetchNodes, refetchMessages, selectedChannelId]);
+  useEffect(() => {
+    if (msgSub && selectedChannelId) {
+      refetchMessages();
+    }
+  }, [msgSub, selectedChannelId, refetchMessages]);
 
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
     onCompleted: ({ createDirectChannel }) => {
@@ -250,25 +232,6 @@ export default function ChatPage() {
     [messagesData?.channelMessages]
   );
 
-  // Process call signaling messages
-  useEffect(() => {
-    if (!messagesData) return;
-    messagesData.channelMessages.forEach((m) => {
-      if (!processedIds.current.has(m.id)) {
-        processedIds.current.add(m.id);
-        if (m.text && m.text.startsWith(CALL_PREFIX) && m.sender.id !== user?.id) {
-          try {
-            const payload: SignalMessage = JSON.parse(
-              m.text.slice(CALL_PREFIX.length)
-            );
-            handleSignal(payload);
-          } catch {
-            /* ignore malformed */
-          }
-        }
-      }
-    });
-  }, [messagesData, handleSignal, user?.id]);
 
   function selectFriend(id:string){
     if(selectedFriendId===id){
@@ -369,6 +332,7 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto space-y-6">
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">Friends</h3>
+                <div className="max-h-48 overflow-y-auto space-y-2">
                 {friendsData!.friends.length ? (
                   friendsData!.friends.map(f => (
                     <button
@@ -381,12 +345,13 @@ export default function ChatPage() {
                           : "bg-orange-500 hover:bg-orange-600"}
                       `}
                     >
-                      {f.username}
+                    {f.username}
                     </button>
                   ))
                 ) : (
                   <p className="text-gray-400 text-sm">No friends available.</p>
                 )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -395,7 +360,8 @@ export default function ChatPage() {
                 {groupsError && <div>Error loading groups</div>}
                 {!groupsLoading && !groupsError && (
                   groupsData && groupsData.myGroups.length ? (
-                    groupsData.myGroups.map(g => (
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                    {groupsData.myGroups.map(g => (
                       <div key={g.id} className="flex items-center space-x-2">
                         <button
                           onClick={() => selectGroup(g.id)}
@@ -415,7 +381,8 @@ export default function ChatPage() {
                           {copiedGroupId === g.id ? "✓" : <Clipboard size={16} />}
                         </button>
                       </div>
-                    ))
+                    ))}
+                    </div>
                   ) : (
                     <p className="text-gray-400 text-sm">No groups available.</p>
                   )
@@ -498,7 +465,8 @@ export default function ChatPage() {
                 {nodesError && <div>Error loading nodes</div>}
                 {!nodesLoading && !nodesError && (
                   nodesData && nodesData.myNodes.length ? (
-                    nodesData.myNodes.map(n => (
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                    {nodesData.myNodes.map(n => (
                       <button
                         key={n.id}
                         onClick={() => selectNode(n.id)}
@@ -511,7 +479,8 @@ export default function ChatPage() {
                       >
                         {n.name}
                       </button>
-                    ))
+                    ))}
+                    </div>
                   ) : (
                     <p className="text-gray-400 text-sm">No nodes available.</p>
                   )
@@ -645,32 +614,7 @@ export default function ChatPage() {
             >
               <Send size={16} />
             </button>
-            <button
-              onClick={() => startCall(false)}
-              disabled={!selectedChannelId || active}
-              className="p-2 bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50 text-white"
-            >
-              <Phone size={16} />
-            </button>
-            <button
-              onClick={() => startCall(true)}
-              disabled={!selectedChannelId || active}
-              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 text-white"
-            >
-              <Video size={16} />
-            </button>
           </div>
-          {active && (
-            <CallPanel
-              localStream={localStream}
-              remoteStream={remoteStream}
-              onEnd={endCall}
-              video={isVideo}
-            />
-          )}
-          {mediaError && (
-            <p className="text-red-400 text-center text-xs mt-2">{mediaError}</p>
-          )}
           {error && <p className="text-red-400 text-center text-sm mt-2">{error}</p>}
         </main>
       </div>

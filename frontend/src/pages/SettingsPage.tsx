@@ -10,6 +10,7 @@ import {
   MUTATION_UPLOAD_FILE,
   MUTATION_UPDATE_PROFILE,
 } from "../graphql/operations";
+import { useAuth } from "../auth/AuthContext";
 
 interface MeResult {
   me: {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
 
   // 2) Auth & navigation
   const navigate = useNavigate();
+  const { refresh } = useAuth();
 
   // 3) Fetch current user info
   const { data, loading, error, refetch } = useQuery<MeResult>(QUERY_ME, {
@@ -89,6 +91,7 @@ export default function SettingsPage() {
         variables: { avatarFileId: res.data.uploadFile.file.id },
       });
       await refetch();
+      refresh();
     } catch (err) {
       setErrorMsg((err as ApolloError).message.replace("GraphQL error: ", ""));
     } finally {
@@ -104,6 +107,7 @@ export default function SettingsPage() {
     try {
       await updateProfile({ variables: { avatarUrl: "" } });
       setShowAvatarOptions(false);
+      refresh();
     } catch {
       // onError handles message
     }
