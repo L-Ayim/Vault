@@ -11,6 +11,7 @@ import {
   MUTATION_SEND_MESSAGE,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
+  MUTATION_UNFRIEND,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -101,6 +102,10 @@ export default function ChatPage() {
         navigate("/chat", { replace: true });
       },
     });
+
+  const [unfriend] = useMutation(MUTATION_UNFRIEND, {
+    onCompleted: () => refetchFriends(),
+  });
 
   // URL auto‐redeem
   useEffect(() => {
@@ -209,17 +214,27 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto space-y-2">
           {friendsData!.friends.length ? (
             friendsData!.friends.map((f) => (
-              <button
+              <div
                 key={f.id}
-                onClick={() => selectFriend(f.id)}
-                className={`w-full text-left px-3 py-2 rounded-md focus:outline-none ${
-                  selectedFriendId === f.id
-                    ? "bg-red-600 text-white"
-                    : "bg-orange-500 text-white hover:bg-orange-600"
-                }`}
+                className="flex items-center space-x-2"
               >
-                {f.username}
-              </button>
+                <button
+                  onClick={() => selectFriend(f.id)}
+                  className={`flex-1 text-left px-3 py-2 rounded-md focus:outline-none ${
+                    selectedFriendId === f.id
+                      ? "bg-red-600 text-white"
+                      : "bg-orange-500 text-white hover:bg-orange-600"
+                  }`}
+                >
+                  {f.username}
+                </button>
+                <button
+                  onClick={() => unfriend({ variables: { friendId: f.id } })}
+                  className="px-2 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-md"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             ))
           ) : (
             <p className="text-gray-400 text-sm">No friends available.</p>

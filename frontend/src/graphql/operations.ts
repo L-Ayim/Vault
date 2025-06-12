@@ -226,6 +226,33 @@ export const MUTATION_JOIN_GROUP_BY_INVITE = gql`
   }
 `;
 
+// 12) Unfriend a user
+export const MUTATION_UNFRIEND = gql`
+  mutation Unfriend($friendId: ID!) {
+    unfriend(friendId: $friendId) {
+      ok
+    }
+  }
+`;
+
+// 13) Leave a group
+export const MUTATION_LEAVE_GROUP = gql`
+  mutation LeaveGroup($groupId: ID!) {
+    leaveGroup(groupId: $groupId) {
+      ok
+    }
+  }
+`;
+
+// 14) Remove a member from a group (owner only)
+export const MUTATION_REMOVE_GROUP_MEMBER = gql`
+  mutation RemoveGroupMember($groupId: ID!, $userId: ID!) {
+    removeGroupMember(groupId: $groupId, userId: $userId) {
+      ok
+    }
+  }
+`;
+
 /* ──────────────────────────────────────────────────────────────────────────────
    FILES (UPLOADS / VERSIONS / SHARES)
    ────────────────────────────────────────────────────────────────────────────── */

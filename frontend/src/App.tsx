@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage";
 import StoragePage from "./pages/StoragePage";
 import MapPage from "./pages/MapPage";
 import ChatPage from "./pages/ChatPage";             // ← import this
+import GroupMembersPage from "./pages/GroupMembersPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -53,6 +54,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups/:groupId"
+          element={
+            <ProtectedRoute>
+              <GroupMembersPage />
             </ProtectedRoute>
           }
         />

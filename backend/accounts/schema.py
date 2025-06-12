@@ -266,6 +266,59 @@ class JoinGroupByInvite(graphene.Mutation):
         return JoinGroupByInvite(group=grp)
 
 
+class Unfriend(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        friend_id = graphene.ID(required=True)
+
+    def mutate(self, info, friend_id):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        Friendship.objects.filter(user=user, friend_id=friend_id).delete()
+        Friendship.objects.filter(user_id=friend_id, friend=user).delete()
+        return Unfriend(ok=True)
+
+
+class LeaveGroup(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        group_id = graphene.ID(required=True)
+
+    def mutate(self, info, group_id):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        gm = GroupMember.objects.filter(group_id=group_id, user=user).first()
+        if not gm:
+            raise GraphQLError("Not a member of that group.")
+        gm.delete()
+        return LeaveGroup(ok=True)
+
+
+class RemoveGroupMember(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    class Arguments:
+        group_id = graphene.ID(required=True)
+        user_id = graphene.ID(required=True)
+
+    def mutate(self, info, group_id, user_id):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        grp = Group.objects.filter(pk=group_id, owner=user).first()
+        if not grp:
+            raise GraphQLError("Not group owner.")
+        gm = GroupMember.objects.filter(group=grp, user_id=user_id).first()
+        if not gm:
+            raise GraphQLError("User not in group.")
+        gm.delete()
+        return RemoveGroupMember(ok=True)
+
+
 class AccountsMutation(graphene.ObjectType):
     create_user          = CreateUser.Field()
     create_friend_invite = CreateFriendInvite.Field()
@@ -273,3 +326,6 @@ class AccountsMutation(graphene.ObjectType):
     revoke_friend_invite = RevokeFriendInvite.Field()
     create_group         = CreateGroup.Field()
     join_group_by_invite = JoinGroupByInvite.Field()
+    unfriend             = Unfriend.Field()
+    leave_group          = LeaveGroup.Field()
+    remove_group_member  = RemoveGroupMember.Field()
