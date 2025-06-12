@@ -383,7 +383,7 @@ export default function ChatPage() {
                               : "bg-orange-500 hover:bg-orange-600"}
                           `}
                         >
-                          {g.name}
+                          {copiedGroupId === g.id ? "Copied" : g.name}
                         </button>
                         <button
                           onClick={() => handleCopyGroup(g.inviteCode, g.id)}
