@@ -66,7 +66,7 @@ Vault/
 ├─ backend/                      # Django + Graphene backend
 │  ├─ Dockerfile
 │  ├─ requirements.txt
-│  ├─ .env                        # Environment variables (not committed)
+│  ├─ .env.example                # Example environment variables
 │  ├─ manage.py
 │  ├─ vault/                      # Django project folder
 │  │  ├─ settings.py
@@ -115,7 +115,7 @@ Vault/
 
 ### Backend (`backend/.env`)
 
-Create a file named `.env` under `backend/` with the following (example values):
+Copy `backend/.env.example` to `backend/.env` and fill in your secrets:
 
 \`\`\`ini
 # Django
@@ -128,7 +128,7 @@ MYSQL_HOST=vault_db
 MYSQL_PORT=3306
 MYSQL_DATABASE=vault_db
 MYSQL_USER=vault_user
-MYSQL_PASSWORD=s3cr3tpass
+MYSQL_PASSWORD=...
 
 # Graphene JWT
 GRAPHENE_JWT_SECRET=your_jwt_secret
@@ -223,7 +223,7 @@ export CHOKIDAR_USEPOLLING=true
    pip install -r requirements.txt
    \`\`\`
 
-3. **Create or copy \`.env\`** (see [Environment Variables](#environment-variables)).
+3. **Copy `backend/.env.example` to `backend/.env`** and edit the values.
 
 4. **Run migrations & start server**:
    \`\`\`bash
@@ -284,7 +284,7 @@ export CHOKIDAR_USEPOLLING=true
 
 - \`Dockerfile\` – Builds the Django container  
 - \`requirements.txt\` – Python dependencies  
-- \`.env\` – Django settings (not committed)  
+- \`.env.example\` – Sample environment settings
 - \`manage.py\` – Django CLI  
 - \`vault/\` – Django project folder  
   - \`settings.py\`, \`urls.py\`, etc.  
