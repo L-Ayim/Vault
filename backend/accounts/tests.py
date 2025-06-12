@@ -42,13 +42,11 @@ class UpdateProfileTests(TestCase):
             self._info(),
             avatar_url="http://example.com/avatar.png",
             bio="Hello",
-            is_public=True,
         )
 
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.avatar_url, "http://example.com/avatar.png")
         self.assertEqual(self.user.profile.bio, "Hello")
-        self.assertTrue(self.user.profile.is_public)
 
     def test_update_profile_with_avatar_file(self):
         from .schema import UpdateProfile

@@ -20,7 +20,7 @@ class ProfileType(DjangoObjectType):
 
     class Meta:
         model = Profile
-        fields = ("avatar_url", "bio", "is_public")
+        fields = ("avatar_url", "bio")
 
     def resolve_avatar_url(self, info):
         if self.avatar_file:
@@ -298,9 +298,8 @@ class UpdateProfile(graphene.Mutation):
         avatar_url = graphene.String()
         avatar_file_id = graphene.ID()
         bio = graphene.String()
-        is_public = graphene.Boolean()
 
-    def mutate(self, info, avatar_url=None, avatar_file_id=None, bio=None, is_public=None):
+    def mutate(self, info, avatar_url=None, avatar_file_id=None, bio=None):
         user = info.context.user
         if user.is_anonymous:
             raise GraphQLError("Login required.")
@@ -316,8 +315,6 @@ class UpdateProfile(graphene.Mutation):
             profile.avatar_url = info.context.build_absolute_uri(file_obj.upload.url)
         if bio is not None:
             profile.bio = bio
-        if is_public is not None:
-            profile.is_public = is_public
         profile.save()
         return UpdateProfile(profile=profile)
 

@@ -21,7 +21,6 @@ interface MeResult {
     profile: {
       avatarUrl: string | null;
       bio: string | null;
-      isPublic: boolean;
     };
   };
 }
@@ -41,7 +40,6 @@ export default function SettingsPage() {
   });
 
   const [bio, setBio] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [newUsername, setNewUsername] = useState<string>("");
   const [newEmail, setNewEmail] = useState<string>("");
@@ -94,7 +92,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (profile) {
       setBio(profile.bio || "");
-      setIsPublic(profile.isPublic);
     }
   }, [profile]);
 
@@ -137,7 +134,7 @@ export default function SettingsPage() {
     }
     try {
       await updateProfile({
-        variables: { avatarFileId, bio, isPublic },
+        variables: { avatarFileId, bio },
       });
     } catch {
       // onError handles message
@@ -223,12 +220,6 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              <div>
-                <p className="text-gray-300 font-medium mb-1">Profile Visibility:</p>
-                <p className="text-gray-200">
-                  {profile?.isPublic ? "Public" : "Private"}
-                </p>
-              </div>
             </div>
 
             {successMsg && (
@@ -258,18 +249,6 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  id="isPublic"
-                  type="checkbox"
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                  className="h-5 w-5 text-orange-500"
-                />
-                <label htmlFor="isPublic" className="text-gray-300">
-                  Profile is public
-                </label>
-              </div>
 
               <button
                 type="submit"

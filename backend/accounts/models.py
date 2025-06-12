@@ -31,7 +31,6 @@ class Profile(models.Model):
     )
     avatar_url = models.URLField(blank=True)
     bio        = models.TextField(blank=True)
-    is_public  = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Profile for {self.user.username}"
