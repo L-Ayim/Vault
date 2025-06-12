@@ -258,6 +258,15 @@ export CHOKIDAR_USEPOLLING=true
    \`\`\`
    The frontend will be available at \`http://localhost:5173/\`.
 
+4. **Build for production & copy files**:
+   ```bash
+   npm run build
+   cp dist/index.html ../backend/templates/index.html
+   cp -r dist/assets ../backend/staticfiles/
+   cp dist/*.svg ../backend/staticfiles/
+   ```
+   Now Django will serve the compiled React app at `/`.
+
 ---
 
 ## Available Scripts

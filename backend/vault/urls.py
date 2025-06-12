@@ -2,9 +2,11 @@
 
 import os
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+
+from django.views.generic import TemplateView
 
 from django.views.decorators.csrf import csrf_exempt
 # Use the special GraphQL view that handles multipart/file uploads
@@ -24,6 +26,11 @@ urlpatterns = [
         ),
         name='graphql',
     ),
+]
+
+# Catch-all: serve React app for any route not handled above
+urlpatterns += [
+    re_path(r'^(?!admin/|graphql/).*', TemplateView.as_view(template_name='index.html'), name='index'),
 ]
 
 if settings.DEBUG:

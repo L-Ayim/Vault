@@ -65,7 +65,7 @@ ROOT_URLCONF = 'vault.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # add project-level templates here if desired
+        'DIRS': [BASE_DIR / 'templates'],  # serve React index.html
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -110,7 +110,8 @@ USE_TZ        = True
 
 # ─── STATIC FILES (CSS / JS / IMAGES) ───────────────────────────────
 STATIC_URL  = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'staticfiles']
+STATIC_ROOT = BASE_DIR / 'static_root'
 
 # ─── MEDIA (USER UPLOADS) ───────────────────────────────────────────
 MEDIA_URL  = '/media/'
