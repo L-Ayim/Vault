@@ -804,6 +804,7 @@ export default function MapPage() {
               {/* Files */}
               <h2 className="text-sm font-medium mb-2 text-white">Files</h2>
               {sidebarUploading && <div className="h-1 w-full bg-orange-500 animate-pulse mb-2"/>}
+              <div className="max-h-48 overflow-y-auto space-y-1">
               {filesData?.myFiles.map(f=>(
                 <div
                   key={f.id}
@@ -840,6 +841,7 @@ export default function MapPage() {
                   </div>
                 </div>
               ))}
+              </div>
 
               {/* Friends */}
               <div className="mt-6 mb-2">
@@ -850,7 +852,8 @@ export default function MapPage() {
               ) : friendsError ? (
                 <p className="text-red-500 text-sm">Error loading friends</p>
               ) : friendsData?.friends.length ? (
-                friendsData.friends.map(f => {
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                {friendsData.friends.map(f => {
                   const perm = friendPermMap[f.id] || "R";
                   return (
                     <div
@@ -911,7 +914,8 @@ export default function MapPage() {
                     </div>
                     </div>
                   );
-                })
+                })}
+                </div>
               ) : (
                 <p className="text-gray-400 text-sm">No friends</p>
               )}
@@ -925,7 +929,8 @@ export default function MapPage() {
               ) : groupsError ? (
                 <p className="text-red-500 text-sm">Error loading groups</p>
               ) : groupsData?.myGroups.length ? (
-                groupsData.myGroups.map(g => {
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                {groupsData.myGroups.map(g => {
                   const perm = groupPermMap[g.id] || "R";
                   return (
                     <div
@@ -985,7 +990,8 @@ export default function MapPage() {
                       </div>
                     </div>
                   );
-                })
+                })}
+                </div>
               ) : (
                 <p className="text-gray-400 text-sm">No groups</p>
               )}
