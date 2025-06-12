@@ -14,6 +14,7 @@ import {
   MUTATION_JOIN_GROUP_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
   MUTATION_SEND_MESSAGE,
+  MUTATION_MARK_CHANNEL_READ,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
   MUTATION_CREATE_GROUP,
@@ -191,6 +192,8 @@ export default function ChatPage() {
     onError: () => setError("Failed to send. Please try again."),
   });
 
+  const [markRead] = useMutation(MUTATION_MARK_CHANNEL_READ);
+
   const [createFriendInvite] = useMutation(MUTATION_CREATE_FRIEND_INVITE, {
     onCompleted: res => setInviteCode(res.createFriendInvite.invite.code),
   });
@@ -258,6 +261,13 @@ export default function ChatPage() {
     () => { messagesEndRef.current?.scrollIntoView({ behavior:"smooth" }) },
     [messagesData?.channelMessages]
   );
+
+  useEffect(() => {
+    if (selectedChannelId && messagesData?.channelMessages) {
+      markRead({ variables: { channelId: selectedChannelId } })
+        .then(() => refetchChannels());
+    }
+  }, [selectedChannelId, messagesData?.channelMessages, markRead, refetchChannels]);
 
 
   function selectFriend(id:string){
@@ -614,7 +624,7 @@ export default function ChatPage() {
                       className={`flex ${mine ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
+                        className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap ${
                           mine ? "bg-neutral-700" : "bg-neutral-600"
                         }`}
                       >

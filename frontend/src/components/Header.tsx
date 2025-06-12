@@ -18,21 +18,7 @@ export default function Header({ children }: HeaderProps) {
         {children}
         <Menu as="div" className="relative">
           <Menu.Button className="flex items-center space-x-2 focus:outline-none">
-            {user?.profile?.avatarUrl ? (
-              <img
-                src={user.profile.avatarUrl}
-                alt="Avatar"
-                className="h-8 w-8 rounded-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                  (e.target as HTMLImageElement).closest("div")?.classList.remove("hidden");
-                }}
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-neutral-700 flex items-center justify-center text-gray-300">
-                <User size={16} />
-              </div>
-            )}
+            <User size={16} className="text-gray-300" />
             <span className="text-gray-200">{user?.username}</span>
             <ChevronDown className="text-gray-400" size={16} />
           </Menu.Button>
