@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { Menu } from "@headlessui/react";
+import { ChevronDown } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import React from "react";
 
@@ -14,13 +16,35 @@ export default function Header({ children }: HeaderProps) {
       </Link>
       <div className="flex items-center space-x-4">
         {children}
-        <span className="text-gray-200">{user?.username}</span>
-        <button
-          onClick={logout}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white"
-        >
-          Logout
-        </button>
+        <Menu as="div" className="relative">
+          <Menu.Button className="flex items-center space-x-2 focus:outline-none">
+            {user?.profile?.avatarUrl ? (
+              <img
+                src={user.profile.avatarUrl}
+                alt="Avatar"
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-neutral-700 flex items-center justify-center text-gray-300">
+                {user?.username?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-gray-200 hidden sm:block">{user?.username}</span>
+            <ChevronDown className="text-gray-400" size={16} />
+          </Menu.Button>
+          <Menu.Items className="absolute right-0 mt-2 w-40 bg-neutral-800 divide-y divide-neutral-700 rounded-md shadow-lg focus:outline-none z-10">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={logout}
+                  className={`${active ? "bg-neutral-700" : ""} w-full text-left px-4 py-2 text-gray-200`}
+                >
+                  Logout
+                </button>
+              )}
+            </Menu.Item>
+          </Menu.Items>
+        </Menu>
       </div>
     </header>
   );
