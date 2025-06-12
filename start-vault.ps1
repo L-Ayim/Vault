@@ -46,7 +46,5 @@ Write-Host "GraphQL WebSocket endpoint:"
 Write-Host "  ws://${ip}:8000/graphql/"
 Write-Host ""
 
-# 4. Build images without cache to ensure dependencies are installed
-docker compose build --no-cache
-# 5. Launch Docker Compose
-docker compose up
+# 4. Launch Docker Compose
+docker compose up --build
