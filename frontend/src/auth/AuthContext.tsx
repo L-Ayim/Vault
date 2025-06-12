@@ -10,7 +10,6 @@ interface User {
   email: string;
   profile?: {
     avatarUrl?: string;
-    bio?: string;
   };
 }
 

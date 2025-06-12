@@ -1,6 +1,6 @@
 // src/pages/SettingsPage.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, ApolloError } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
@@ -20,7 +20,6 @@ interface MeResult {
     email: string;
     profile: {
       avatarUrl: string | null;
-      bio: string | null;
     };
   };
 }
@@ -39,8 +38,9 @@ export default function SettingsPage() {
     fetchPolicy: "network-only",
   });
 
-  const [bio, setBio] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showAvatarOptions, setShowAvatarOptions] = useState(false);
   const [newUsername, setNewUsername] = useState<string>("");
   const [newEmail, setNewEmail] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -90,12 +90,6 @@ export default function SettingsPage() {
   const username = data?.me.username;
 
   useEffect(() => {
-    if (profile) {
-      setBio(profile.bio || "");
-    }
-  }, [profile]);
-
-  useEffect(() => {
     if (username) setNewUsername(username);
     if (email) setNewEmail(email);
   }, [username, email]);
@@ -134,7 +128,7 @@ export default function SettingsPage() {
     }
     try {
       await updateProfile({
-        variables: { avatarFileId, bio },
+        variables: { avatarFileId },
       });
     } catch {
       // onError handles message
@@ -153,6 +147,17 @@ export default function SettingsPage() {
           password: newPassword || null,
         },
       });
+    } catch {
+      // onError handles message
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await updateProfile({ variables: { avatarUrl: "" } });
+      setShowAvatarOptions(false);
     } catch {
       // onError handles message
     }
@@ -194,10 +199,14 @@ export default function SettingsPage() {
                   <img
                     src={profile.avatarUrl}
                     alt="Avatar"
-                    className="h-16 w-16 rounded-full object-cover"
+                    className="h-16 w-16 rounded-full object-cover cursor-pointer"
+                    onClick={() => setShowAvatarOptions((v) => !v)}
                   />
                 ) : (
-                  <div className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400">
+                  <div
+                    className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400 cursor-pointer"
+                    onClick={() => setShowAvatarOptions((v) => !v)}
+                  >
                     <User size={32} />
                   </div>
                 )}
@@ -211,15 +220,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div>
-                <p className="text-gray-300 font-medium mb-1">Bio:</p>
-                <p className="text-gray-200">
-                  {profile?.bio?.trim() || (
-                    <span className="italic text-gray-400">No bio provided.</span>
-                  )}
-                </p>
-              </div>
-
             </div>
 
             {successMsg && (
@@ -228,27 +228,37 @@ export default function SettingsPage() {
             {errorMsg && <p className="text-red-400 mt-4">{errorMsg}</p>}
 
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              <div>
-                <label className="block text-gray-300 text-sm mb-1">Avatar</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setAvatarFile(e.target.files ? e.target.files[0] : null)
-                  }
-                  className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
-                />
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  setAvatarFile(e.target.files ? e.target.files[0] : null);
+                  setShowAvatarOptions(false);
+                }}
+                className="hidden"
+              />
 
-              <div>
-                <label className="block text-gray-300 text-sm mb-1">Bio</label>
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
+              {showAvatarOptions && (
+                <div className="space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1 bg-neutral-700 rounded hover:bg-neutral-600"
+                  >
+                    Upload Image
+                  </button>
+                  {profile?.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="px-3 py-1 bg-red-700 rounded hover:bg-red-800"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+              )}
 
               <button
                 type="submit"

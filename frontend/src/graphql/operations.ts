@@ -50,7 +50,6 @@ export const QUERY_ME = gql`
       email
       profile {
         avatarUrl
-        bio
       }
     }
   }
@@ -92,7 +91,6 @@ export const QUERY_FRIENDS = gql`
       email
       profile {
         avatarUrl
-        bio
       }
     }
   }
@@ -142,7 +140,6 @@ export const MUTATION_CREATE_USER = gql`
         email
         profile {
           avatarUrl
-          bio
         }
       }
       token
@@ -251,19 +248,10 @@ export const MUTATION_JOIN_GROUP_BY_INVITE = gql`
 
 // 12) Update the authenticated user's profile
 export const MUTATION_UPDATE_PROFILE = gql`
-  mutation UpdateProfile(
-    $avatarUrl: String
-    $avatarFileId: ID
-    $bio: String
-  ) {
-    updateProfile(
-      avatarUrl: $avatarUrl
-      avatarFileId: $avatarFileId
-      bio: $bio
-    ) {
+  mutation UpdateProfile($avatarUrl: String, $avatarFileId: ID) {
+    updateProfile(avatarUrl: $avatarUrl, avatarFileId: $avatarFileId) {
       profile {
         avatarUrl
-        bio
       }
     }
   }
