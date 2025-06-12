@@ -8,25 +8,17 @@ from django.conf.urls.static import static
 
 from django.views.generic import TemplateView
 
-from django.views.decorators.csrf import csrf_exempt
 # Use the special GraphQL view that handles multipart/file uploads
 from graphene_file_upload.django import FileUploadGraphQLView
-from graphql_jwt.decorators import jwt_cookie
 
 urlpatterns = [
     # Admin site
     path('admin/', admin.site.urls),
 
-    # GraphQL endpoint (with GraphiQL UI and file‐upload support)
-    # We wrap it in csrf_exempt so Altair/Electron (origin "electron://altair")
-    # won’t be blocked by Django’s CSRF middleware.
+    # GraphQL endpoint (with GraphiQL UI and file-upload support)
     path(
         'graphql/',
-        csrf_exempt(
-            jwt_cookie(
-                FileUploadGraphQLView.as_view(graphiql=True)
-            )
-        ),
+        FileUploadGraphQLView.as_view(graphiql=True),
         name='graphql',
     ),
 ]

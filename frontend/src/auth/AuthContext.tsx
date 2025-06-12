@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: () => void;
+  login: (token: string) => void;
   logout: () => void;
 }
 
@@ -27,14 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Use QUERY_ME to fetch current user based on the cookie
+  // Use QUERY_ME to fetch current user whenever there is a token
   const [loadMe, { data, loading, error }] = useLazyQuery<{ me: User }>(QUERY_ME, {
     fetchPolicy: "network-only",
   });
 
-  // On mount, check if a session already exists via cookie
+  // On mount, if a token exists, run the ME query
   useEffect(() => {
-    loadMe();
+    const token = localStorage.getItem("token");
+    if (token) {
+      loadMe();
+    }
   }, [loadMe]);
 
   // Update user / auth state when ME data arrives or errors out
@@ -43,17 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.me);
       setIsAuthenticated(true);
     } else if (error) {
+      localStorage.removeItem("token");
       setUser(null);
       setIsAuthenticated(false);
     }
   }, [data, error]);
 
-  const login = () => {
+  const login = (token: string) => {
+    localStorage.setItem("token", token);
     setIsAuthenticated(true);
     loadMe();
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     setUser(null);
     setIsAuthenticated(false);
   };

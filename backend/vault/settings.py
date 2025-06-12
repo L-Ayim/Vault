@@ -136,7 +136,8 @@ GRAPHQL_JWT = {
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_COOKIE_NAME': 'access_token',
     'JWT_REFRESH_TOKEN_COOKIE_NAME': 'refresh_token',
-    'JWT_COOKIE_SECURE': False,  # set to True in production
+    'JWT_COOKIE_SECURE': True,
+    'JWT_COOKIE_HTTPONLY': True,
     'JWT_COOKIE_SAMESITE': 'Lax',
 }
 
