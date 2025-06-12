@@ -14,7 +14,6 @@ import {
   MUTATION_JOIN_GROUP_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
   MUTATION_SEND_MESSAGE,
-  MUTATION_MARK_CHANNEL_READ,
   MUTATION_CREATE_FRIEND_INVITE,
   MUTATION_REDEEM_FRIEND_INVITE,
   MUTATION_CREATE_GROUP,
@@ -64,7 +63,6 @@ interface Message {
 interface ChannelInfo {
   id: string
   channelType: string
-  unreadCount: number
   directUser1?: { id: string }
   directUser2?: { id: string }
   group?: { id: string }
@@ -112,19 +110,6 @@ export default function ChatPage() {
 
   const { data: channelsData, refetch: refetchChannels } =
     useQuery<{ myChannels: ChannelInfo[] }>(QUERY_MY_CHANNELS);
-
-  const unreadMap = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    channelsData?.myChannels.forEach(ch => {
-      if (ch.channelType === "DIRECT") {
-        const other = ch.directUser1?.id === user?.id ? ch.directUser2?.id : ch.directUser1?.id;
-        if (other) map[other] = ch.unreadCount;
-      } else if (ch.channelType === "GROUP" && ch.group) {
-        map[ch.group.id] = ch.unreadCount;
-      }
-    });
-    return map;
-  }, [channelsData, user?.id]);
 
   const { data: messagesData, loading: messagesLoading, error: messagesError, refetch: refetchMessages } =
     useQuery<{ channelMessages: Message[] }>(QUERY_CHANNEL_MESSAGES, {
@@ -191,8 +176,6 @@ export default function ChatPage() {
     },
     onError: () => setError("Failed to send. Please try again."),
   });
-
-  const [markRead] = useMutation(MUTATION_MARK_CHANNEL_READ);
 
   const [createFriendInvite] = useMutation(MUTATION_CREATE_FRIEND_INVITE, {
     onCompleted: res => setInviteCode(res.createFriendInvite.invite.code),
@@ -262,12 +245,6 @@ export default function ChatPage() {
     [messagesData?.channelMessages]
   );
 
-  useEffect(() => {
-    if (selectedChannelId && messagesData?.channelMessages) {
-      markRead({ variables: { channelId: selectedChannelId } })
-        .then(() => refetchChannels());
-    }
-  }, [selectedChannelId, messagesData?.channelMessages, markRead, refetchChannels]);
 
 
   function selectFriend(id:string){
@@ -383,11 +360,6 @@ export default function ChatPage() {
                       `}
                     >
                       <span>{f.username}</span>
-                      {unreadMap[f.id] ? (
-                        <span className="ml-2 bg-red-700 text-white rounded-full px-2 text-xs">
-                          {unreadMap[f.id]}
-                        </span>
-                      ) : null}
                     </button>
                   ))
                 ) : (
@@ -415,11 +387,6 @@ export default function ChatPage() {
                           `}
                         >
                           <span>{copiedGroupId === g.id ? "Copied" : g.name}</span>
-                          {unreadMap[g.id] ? (
-                            <span className="ml-2 bg-red-700 text-white rounded-full px-2 text-xs">
-                              {unreadMap[g.id]}
-                            </span>
-                          ) : null}
                         </button>
                         <button
                           onClick={() => handleCopyGroup(g.inviteCode, g.id)}

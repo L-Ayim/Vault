@@ -6,7 +6,6 @@ import { useQuery, useMutation, useSubscription } from "@apollo/client";
 import {
   QUERY_CHANNEL_MESSAGES,
   MUTATION_SEND_MESSAGE,
-  MUTATION_MARK_CHANNEL_READ,
   SUBSCRIPTION_MESSAGE_UPDATES,
 } from "../graphql/operations";
 import { Send, X } from "lucide-react";
@@ -60,13 +59,8 @@ export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
     },
   });
 
-  const [markRead] = useMutation(MUTATION_MARK_CHANNEL_READ);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    if (channelId && data?.channelMessages) {
-      markRead({ variables: { channelId } });
-    }
   }, [data?.channelMessages]);
 
   // Scroll to bottom on new messages
@@ -81,11 +75,6 @@ export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
     });
   };
 
-  useEffect(() => {
-    if (channelId) {
-      markRead({ variables: { channelId } });
-    }
-  }, [channelId]);
 
   const onKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
