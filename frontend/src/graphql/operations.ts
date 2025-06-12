@@ -247,6 +247,15 @@ export const MUTATION_JOIN_GROUP_BY_INVITE = gql`
   }
 `;
 
+// 12) Delete a group you own
+export const MUTATION_DELETE_GROUP = gql`
+  mutation DeleteGroup($groupId: ID!) {
+    deleteGroup(groupId: $groupId) {
+      ok
+    }
+  }
+`;
+
 // 12) Update the authenticated user's profile
 export const MUTATION_UPDATE_PROFILE = gql`
   mutation UpdateProfile($avatarUrl: String, $avatarFileId: ID) {
