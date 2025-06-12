@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: Props) {
   }
 
   // If not authenticated, redirect to "/" instead of "/login"
-  if (!loading && !isAuthenticated) {
+  if (!isAuthenticated) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
