@@ -50,7 +50,15 @@ class FriendshipType(DjangoObjectType):
 class GroupType(DjangoObjectType):
     class Meta:
         model = Group
-        fields = ("id", "name", "owner", "invite_code", "single_use")
+        fields = (
+            "id",
+            "name",
+            "owner",
+            "invite_code",
+            "single_use",
+            "max_invite_uses",
+            "invite_uses_count",
+        )
 
 
 # ─── Queries ────────────────────────────────────────────────────────────────
@@ -236,12 +244,18 @@ class CreateGroup(graphene.Mutation):
     class Arguments:
         name = graphene.String(required=True)
         single_use = graphene.Boolean(default_value=False)
+        max_invite_uses = graphene.Int(default_value=100)
 
-    def mutate(self, info, name, single_use):
+    def mutate(self, info, name, single_use, max_invite_uses):
         user = info.context.user
         if user.is_anonymous:
             raise GraphQLError("Login required.")
-        grp = Group.objects.create(name=name, owner=user, single_use=single_use)
+        grp = Group.objects.create(
+            name=name,
+            owner=user,
+            single_use=single_use,
+            max_invite_uses=max_invite_uses,
+        )
         GroupMember.objects.create(user=user, group=grp)
         return CreateGroup(group=grp)
 
@@ -260,6 +274,7 @@ class JoinGroupByInvite(graphene.Mutation):
         if not grp or not grp.is_active:
             raise GraphQLError("Invalid or revoked invite code.")
         GroupMember.objects.get_or_create(user=user, group=grp)
+        grp.register_invite_use()
         if grp.single_use:
             grp.revoked = True
             grp.save()

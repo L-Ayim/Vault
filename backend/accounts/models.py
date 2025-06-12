@@ -135,6 +135,14 @@ class Group(models.Model):
         default=False,
         help_text="Manually revoke this group's invite code"
     )
+    max_invite_uses = models.PositiveIntegerField(
+        default=100,
+        help_text="Maximum times the current invite code can be used before rotation",
+    )
+    invite_uses_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of times the current invite code has been used",
+    )
     created_at  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -148,9 +156,17 @@ class Group(models.Model):
         self.revoked = True
         self.save()
 
+    def register_invite_use(self):
+        """Increment usage and rotate code when limit reached."""
+        self.invite_uses_count += 1
+        if self.invite_uses_count >= self.max_invite_uses:
+            self.invite_code = uuid.uuid4()
+            self.invite_uses_count = 0
+        self.save()
+
     @property
     def is_active(self):
-        return not self.revoked
+        return not self.revoked and self.invite_uses_count < self.max_invite_uses
 
 
 class GroupMember(models.Model):

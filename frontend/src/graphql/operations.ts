@@ -112,6 +112,8 @@ export const QUERY_MY_GROUPS = gql`
       }
       inviteCode
       singleUse
+      maxInviteUses
+      inviteUsesCount
     }
   }
 `;
@@ -204,8 +206,16 @@ export const MUTATION_REVOKE_FRIEND_INVITE = gql`
 
 // 10) Create a new group
 export const MUTATION_CREATE_GROUP = gql`
-  mutation CreateGroup($name: String!, $singleUse: Boolean!) {
-    createGroup(name: $name, singleUse: $singleUse) {
+  mutation CreateGroup(
+    $name: String!
+    $singleUse: Boolean!
+    $maxInviteUses: Int = 100
+  ) {
+    createGroup(
+      name: $name
+      singleUse: $singleUse
+      maxInviteUses: $maxInviteUses
+    ) {
       group {
         id
         name
@@ -215,6 +225,8 @@ export const MUTATION_CREATE_GROUP = gql`
         }
         inviteCode
         singleUse
+        maxInviteUses
+        inviteUsesCount
       }
     }
   }
@@ -233,6 +245,8 @@ export const MUTATION_JOIN_GROUP_BY_INVITE = gql`
         }
         inviteCode
         singleUse
+        maxInviteUses
+        inviteUsesCount
       }
     }
   }
