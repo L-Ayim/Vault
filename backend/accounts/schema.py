@@ -9,15 +9,23 @@ from graphene_django.types import DjangoObjectType
 from graphql_jwt.shortcuts import get_token
 
 from .models import Profile, Invite, Friendship, Group, GroupMember
+from files.models import File
 
 User = get_user_model()
 
 # ─── GraphQL Types ─────────────────────────────────────────────────────────
 
 class ProfileType(DjangoObjectType):
+    avatar_url = graphene.String()
+
     class Meta:
         model = Profile
         fields = ("avatar_url", "bio", "is_public")
+
+    def resolve_avatar_url(self, info):
+        if self.avatar_file:
+            return info.context.build_absolute_uri(self.avatar_file.upload.url)
+        return self.avatar_url
 
 
 class UserType(DjangoObjectType):
@@ -288,16 +296,24 @@ class UpdateProfile(graphene.Mutation):
 
     class Arguments:
         avatar_url = graphene.String()
+        avatar_file_id = graphene.ID()
         bio = graphene.String()
         is_public = graphene.Boolean()
 
-    def mutate(self, info, avatar_url=None, bio=None, is_public=None):
+    def mutate(self, info, avatar_url=None, avatar_file_id=None, bio=None, is_public=None):
         user = info.context.user
         if user.is_anonymous:
             raise GraphQLError("Login required.")
         profile = user.profile
         if avatar_url is not None:
             profile.avatar_url = avatar_url
+            profile.avatar_file = None
+        if avatar_file_id is not None:
+            file_obj = File.objects.filter(pk=avatar_file_id, owner=user).first()
+            if not file_obj:
+                raise GraphQLError("Invalid avatar file.")
+            profile.avatar_file = file_obj
+            profile.avatar_url = info.context.build_absolute_uri(file_obj.upload.url)
         if bio is not None:
             profile.bio = bio
         if is_public is not None:

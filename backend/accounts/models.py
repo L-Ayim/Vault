@@ -22,6 +22,13 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         related_name="profile"
     )
+    avatar_file = models.ForeignKey(
+        'files.File',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='avatar_profiles',
+    )
     avatar_url = models.URLField(blank=True)
     bio        = models.TextField(blank=True)
     is_public  = models.BooleanField(default=False)
