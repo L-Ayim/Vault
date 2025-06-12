@@ -109,15 +109,27 @@ export default function MapPage() {
   }, []);
 
   // chat overlay
-  const [chatChannel, setChatChannel] = useState<string | null>(null);
+  const [chatInfo, setChatInfo] = useState<{ id: string; name: string } | null>(null);
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
-    onCompleted: res => setChatChannel(res.createDirectChannel.channel.id),
+    onCompleted: res =>
+      setChatInfo({
+        id: res.createDirectChannel.channel.id,
+        name: res.createDirectChannel.channel.name,
+      }),
   });
   const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL, {
-    onCompleted: res => setChatChannel(res.joinNodeChannel.channel.id),
+    onCompleted: res =>
+      setChatInfo({
+        id: res.joinNodeChannel.channel.id,
+        name: res.joinNodeChannel.channel.name,
+      }),
   });
   const [joinGroupChannel] = useMutation(MUTATION_JOIN_GROUP_CHANNEL, {
-    onCompleted: res => setChatChannel(res.joinGroupChannel.channel.id),
+    onCompleted: res =>
+      setChatInfo({
+        id: res.joinGroupChannel.channel.id,
+        name: res.joinGroupChannel.channel.name,
+      }),
   });
 
   // friends
@@ -982,10 +994,11 @@ export default function MapPage() {
       </div>
 
       {/* Chat overlay */}
-      {chatChannel && (
+      {chatInfo && (
         <ChatBox
-          channelId={chatChannel}
-          onClose={() => setChatChannel(null)}
+          channelId={chatInfo.id}
+          title={chatInfo.name}
+          onClose={() => setChatInfo(null)}
         />
       )}
 

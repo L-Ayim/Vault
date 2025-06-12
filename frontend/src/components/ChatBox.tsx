@@ -23,9 +23,10 @@ interface Message {
 interface ChatBoxProps {
   channelId: string;
   onClose: () => void;
+  title?: string;
 }
 
-export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
+export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
   const { user } = useAuth();
   const userId = user?.id;
 
@@ -138,7 +139,9 @@ export default function ChatBox({ channelId, onClose }: ChatBoxProps) {
     <div className="fixed bottom-4 right-4 w-80 bg-neutral-800/90 rounded-lg shadow-lg flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center p-2 border-b border-neutral-700">
-        <h4 className="text-white text-sm">Chat</h4>
+        <h4 className="text-white text-sm">
+          {title || data?.channelMessages[0]?.channel.name || "Chat"}
+        </h4>
         <button onClick={onClose} className="p-1 hover:bg-neutral-700 rounded">
           <X className="text-white" size={16} />
         </button>
