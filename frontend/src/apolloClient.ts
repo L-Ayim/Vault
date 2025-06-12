@@ -3,7 +3,6 @@
 import { ApolloClient, InMemoryCache, split } from "@apollo/client";
 // Default import from the ESM file
 import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
-import { setContext } from "@apollo/client/link/context";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { createClient } from "graphql-ws";
@@ -11,6 +10,7 @@ import { createClient } from "graphql-ws";
 // 1) Use createUploadLink so that file uploads (Upload scalars) are sent as multipart/form-data
 const httpLink = createUploadLink({
   uri: import.meta.env.VITE_GRAPHQL_URL || "http://localhost:8000/graphql/",
+  credentials: "include",
 });
 
 // Optional WebSocket link for subscriptions. If `VITE_GRAPHQL_WS_URL` is not
@@ -20,24 +20,9 @@ const wsLink = wsUrl
   ? new GraphQLWsLink(
       createClient({
         url: wsUrl,
-        connectionParams: () => {
-          const token = localStorage.getItem("token");
-          return token ? { Authorization: `JWT ${token}` } : {};
-        },
       })
     )
   : null;
-
-// 2) Attach JWT on every request
-const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem("token");
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `JWT ${token}` : "",
-    },
-  };
-});
 
 let link = httpLink;
 
@@ -55,9 +40,9 @@ if (wsLink) {
   );
 }
 
-// 4) Combine authLink with the chosen link into the Apollo Client
+// 2) Create the Apollo Client with the chosen link
 const client = new ApolloClient({
-  link: authLink.concat(link),
+  link,
   cache: new InMemoryCache(),
 });
 

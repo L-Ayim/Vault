@@ -176,8 +176,12 @@ class CreateUser(graphene.Mutation):
             password=password,
         )
 
-        # FIX → build a valid dict payload and sign it
+        # Issue a JWT for the new user
         token = get_token(user)
+
+        # If the GraphQL view enables JWT cookies, attach the token
+        if getattr(info.context, "jwt_cookie", False):
+            info.context.jwt_token = token
 
         return CreateUser(user=user, token=token)
 

@@ -30,11 +30,8 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, redirectTo]);
 
   const [tokenAuth, { loading }] = useMutation(MUTATION_TOKEN_AUTH, {
-    onCompleted(data) {
-      const token = data.tokenAuth.token;
-      if (token) {
-        login(token);
-      }
+    onCompleted() {
+      login();
     },
     onError(err) {
       setErrorMsg(err.message.replace("GraphQL error: ", ""));

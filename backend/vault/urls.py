@@ -11,6 +11,7 @@ from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
 # Use the special GraphQL view that handles multipart/file uploads
 from graphene_file_upload.django import FileUploadGraphQLView
+from graphql_jwt.decorators import jwt_cookie
 
 urlpatterns = [
     # Admin site
@@ -22,7 +23,9 @@ urlpatterns = [
     path(
         'graphql/',
         csrf_exempt(
-            FileUploadGraphQLView.as_view(graphiql=True)
+            jwt_cookie(
+                FileUploadGraphQLView.as_view(graphiql=True)
+            )
         ),
         name='graphql',
     ),
