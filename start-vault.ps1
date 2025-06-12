@@ -2,9 +2,23 @@
 # ────────────────────────────────────────────────────────────────────────
 
 # 1. Auto-detect a 192.168.x.x IPv4 address (or prompt if none found)
-$ip = Get-NetIPAddress -AddressFamily IPv4 |
-      Where-Object { $_.IPAddress -match '^192\.168\.' } |
-      Select-Object -First 1 -ExpandProperty IPAddress
+$ip = $null
+
+# Try Windows cmdlet first
+try {
+    $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+          Where-Object { $_.IPAddress -match '^192\.168\.' } |
+          Select-Object -First 1 -ExpandProperty IPAddress
+} catch {
+    # Ignore errors on non-Windows systems
+}
+
+# Fall back to cross-platform hostname -I
+if (-not $ip) {
+    $ip = (hostname -I 2>$null) -split ' ' |
+          Where-Object { $_ -match '^192\.168\.' } |
+          Select-Object -First 1
+}
 
 if (-not $ip) {
     Write-Warning "Could not auto-detect a 192.168.x.x address."
