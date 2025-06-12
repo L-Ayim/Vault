@@ -326,7 +326,7 @@ Compose so the containers pick up the new settings.
     - \`ProtectedRoute.tsx\` – Redirects unauthenticated users to \`/login\`  
   - \`graphql/operations.ts\` – All GraphQL queries & mutations  
   - \`pages/\`  
-    - \`HomePage.tsx\` – Landing page with “Log In” & “Sign Up” buttons  
+    - \`HomePage.tsx\` – Landing page with auth-aware buttons (Login/Signup or Dashboard/Logout)
     - \`LoginPage.tsx\`, \`SignupPage.tsx\` – Auth forms  
     - \`DashboardPage.tsx\` – Four cards (Storage, Map, Chat, Settings)  
     - \`StoragePage.tsx\` – File upload & list  
