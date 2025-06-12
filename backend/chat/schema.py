@@ -4,7 +4,6 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from django.db.models import Q
 from django.utils import timezone
-from datetime import datetime
 
 from .models import Channel, ChannelMembership, Message
 from accounts.schema import UserType
@@ -16,7 +15,6 @@ from graph.models import Node
 
 
 class ChannelType(DjangoObjectType):
-    unread_count = graphene.Int()
     direct_user1 = graphene.Field(UserType)
     direct_user2 = graphene.Field(UserType)
 
@@ -31,22 +29,6 @@ class ChannelType(DjangoObjectType):
             "direct_user1",
             "direct_user2",
             "created_at",
-        )
-
-    def resolve_unread_count(self, info):
-        user = info.context.user
-        if user.is_anonymous:
-            return 0
-        membership = self.memberships.filter(user=user).first()
-        if not membership:
-            return 0
-        last_read = membership.last_read_at
-        if not last_read:
-            last_read = timezone.make_aware(datetime.min)
-        return (
-            self.messages.filter(created_at__gt=last_read)
-            .exclude(sender=user)
-            .count()
         )
 
 
@@ -226,32 +208,11 @@ class SendMessage(graphene.Mutation):
         return SendMessage(message=msg)
 
 
-class MarkChannelRead(graphene.Mutation):
-    ok = graphene.Boolean()
-
-    class Arguments:
-        channel_id = graphene.ID(required=True)
-
-    def mutate(self, info, channel_id):
-        user = info.context.user
-        if user.is_anonymous:
-            raise GraphQLError("Authentication required.")
-        membership = ChannelMembership.objects.filter(
-            channel_id=channel_id, user=user
-        ).first()
-        if not membership:
-            raise GraphQLError("No access to that channel.")
-        membership.last_read_at = timezone.now()
-        membership.save()
-        return MarkChannelRead(ok=True)
-
-
 class ChatMutation(graphene.ObjectType):
     create_direct_channel = CreateDirectChannel.Field()
     join_node_channel = JoinNodeChannel.Field()
     join_group_channel = JoinGroupChannel.Field()
     send_message = SendMessage.Field()
-    mark_channel_read = MarkChannelRead.Field()
 
 
 # Finally, wire up the schema
