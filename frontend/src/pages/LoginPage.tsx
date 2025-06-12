@@ -68,7 +68,6 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md
                          focus:outline-none focus:ring-2 focus:ring-red-500"
-                         focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
           </div>
