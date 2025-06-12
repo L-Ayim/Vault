@@ -40,6 +40,7 @@ import {
   MUTATION_SHARE_NODE_WITH_USER,
   MUTATION_REVOKE_NODE_SHARE,
   MUTATION_CREATE_DIRECT_CHANNEL,
+  MUTATION_JOIN_NODE_CHANNEL,
   SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import {
@@ -105,6 +106,9 @@ export default function MapPage() {
   const [chatChannel, setChatChannel] = useState<string | null>(null);
   const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
     onCompleted: res => setChatChannel(res.createDirectChannel.channel.id),
+  });
+  const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL, {
+    onCompleted: res => setChatChannel(res.joinNodeChannel.channel.id),
   });
 
   // friends
@@ -508,6 +512,13 @@ export default function MapPage() {
         {dropping && (
           <div className="absolute top-0 left-0 h-1 w-full bg-orange-500 animate-pulse"/>
         )}
+
+        <button
+          onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+          className="absolute top-1 left-1 p-1 bg-neutral-700 hover:bg-red-600 rounded"
+        >
+          <MessageCircle size={12} className="text-white" />
+        </button>
 
         <button
           onClick={()=>setCollapsed(c=>!c)}
