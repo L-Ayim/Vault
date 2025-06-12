@@ -574,29 +574,41 @@ export default function MapPage() {
       <div
         onDragOver={onDragOver}
         onDrop={onDrop}
-        className={`relative bg-neutral-800/75 rounded-xl p-4 ${collapsed? 'w-32 h-10' : 'w-48'} select-none ${
-          selected? "ring-2 ring-orange-500":""
-        }`}
-        style={{ fontFamily:"'Segoe UI',sans-serif", color:"#F1F5F9", transition:'height 0.2s' }}
-        onMouseDown={e=>e.stopPropagation()}
+        className={`relative bg-neutral-800/75 rounded-xl p-2 select-none flex flex-col ${
+          collapsed ? "" : "space-y-2"
+        } ${selected ? "ring-2 ring-orange-500" : ""}`}
+        style={{
+          fontFamily: "'Segoe UI',sans-serif",
+          color: "#F1F5F9",
+          height: collapsed ? "2.5rem" : undefined,
+          overflow: collapsed ? "hidden" : undefined,
+          transition: "height 0.2s",
+        }}
+        onMouseDown={e => e.stopPropagation()}
       >
         {dropping && (
           <div className="absolute top-0 left-0 h-1 w-full bg-orange-500 animate-pulse"/>
         )}
 
-        <button
-          onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
-          className="absolute top-1 left-1 p-1 bg-neutral-700 hover:bg-red-600 rounded"
-        >
-          <MessageCircle size={12} className="text-white" />
-        </button>
+        <div className="flex items-start justify-between">
+          <button
+            onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+            className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+          >
+            <MessageCircle size={12} className="text-white" />
+          </button>
 
-        <button
-          onClick={()=>setCollapsed(c=>!c)}
-          className="absolute top-1 right-1 p-1 bg-neutral-700 rounded"
-        >
-          {collapsed ? <ChevronDown size={12} className="text-white"/> : <ChevronUp size={12} className="text-white"/>}
-        </button>
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="p-1 bg-neutral-700 rounded"
+          >
+            {collapsed ? (
+              <ChevronDown size={12} className="text-white" />
+            ) : (
+              <ChevronUp size={12} className="text-white" />
+            )}
+          </button>
+        </div>
 
         <Handle type="target" position={Position.Left} style={handleStyle} />
         <Handle type="source" position={Position.Right} style={handleStyle} />
@@ -608,7 +620,7 @@ export default function MapPage() {
           </div>
         ) : (
           <div className="mb-3">
-            <label className="block text-gray-300 text-xs mb-1">Name</label>
+            <label className="block text-gray-300 text-sm mb-1">Name</label>
             <input
               value={nm}
               onChange={e=>setNm(e.target.value)}
@@ -623,7 +635,7 @@ export default function MapPage() {
           <>
             {/* Description */}
             <div className="mb-3">
-              <label className="block text-gray-300 text-xs mb-1">Description</label>
+              <label className="block text-gray-300 text-sm mb-1">Description</label>
               <textarea
                 value={desc}
                 onChange={e=>setDesc(e.target.value)}
@@ -635,13 +647,13 @@ export default function MapPage() {
 
             {/* Files */}
             <div className="mb-2">
-              <span className="text-gray-300 font-medium text-xs">Files</span>
+              <span className="text-gray-300 font-medium text-sm">Files</span>
               <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
                   {nfData?.nodeFiles?.length > 0 ? (
                     nfData.nodeFiles.map((nf: FileOnNode) => (
                     <li
                       key={nf.file.id}
-                      className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
+                      className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-sm text-white"
                     >
                       <div className="flex-1 flex items-center space-x-1 overflow-hidden">
                         <FileText size={12} className="flex-shrink-0"/>
@@ -668,19 +680,19 @@ export default function MapPage() {
                     </li>
                   ))
                 ) : (
-                  <li className="italic text-gray-400 text-xs">Drag file here</li>
+                  <li className="italic text-gray-400 text-sm">Drag file here</li>
                 )}
               </ul>
             </div>
 
             {/* Shared with */}
             <div className="mb-2">
-              <span className="text-gray-300 font-medium text-xs">Shared with</span>
+              <span className="text-gray-300 font-medium text-sm">Shared with</span>
               <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
                 {data.shares.length>0 ? data.shares.map(share=>(
                   <li
                     key={share.id}
-                    className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
+                    className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-sm text-white"
                   >
                     <div className="flex items-center space-x-1">
                       <span className="truncate">
@@ -703,7 +715,7 @@ export default function MapPage() {
                     </button>
                   </li>
                 )) : (
-                  <li className="italic text-gray-400 text-xs">Drag friend or group here</li>
+                  <li className="italic text-gray-400 text-sm">Drag friend or group here</li>
                 )}
               </ul>
             </div>
