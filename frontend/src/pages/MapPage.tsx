@@ -15,7 +15,6 @@ import ReactFlow, {
   addEdge,
   useNodesState,
   useEdgesState,
-  useReactFlow,
   Handle,
   type NodeDragHandler,
   type NodeProps,
@@ -60,10 +59,7 @@ import {
   Eye,
   Pen,
   MessageCircle,
-  Upload,
-  Camera,
 } from "lucide-react";
-import { toPng } from "html-to-image";
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
@@ -390,9 +386,6 @@ export default function MapPage() {
   // ReactFlow state
   const [nodes, setNodes, onNodesChange] = useNodesState(graphNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graphEdges);
-  const rf = useReactFlow();
-  const flowRef = useRef<HTMLDivElement>(null);
-  const importRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (nodesData?.myNodes) {
       setNodes(graphNodes);
@@ -423,52 +416,6 @@ export default function MapPage() {
         onCompleted:()=>setEdges(eds=>eds.filter(x=>x.id!==e.id))
       })
     );
-  };
-
-  const exportJson = async () => {
-    const obj = rf.toObject();
-    const data = JSON.stringify({ nodes: obj.nodes, edges: obj.edges }, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const name = `map-export-${Date.now()}.json`;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
-    const file = new File([blob], name, { type: "application/json" });
-    uploadFile({ variables: { name, upload: file } }).catch(() => {});
-  };
-
-  const importJson = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const obj = JSON.parse(text);
-      if (obj.nodes && obj.edges) {
-        setNodes(obj.nodes);
-        setEdges(obj.edges);
-        obj.nodes.forEach((n: Node) =>
-          savePosition(n.id, n.position.x, n.position.y)
-        );
-      }
-    } catch {
-      alert("Invalid file");
-    }
-  };
-
-  const exportImage = async () => {
-    if (!flowRef.current) return;
-    const dataUrl = await toPng(flowRef.current);
-    const name = `map-image-${Date.now()}.png`;
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = name;
-    link.click();
-    const blob = await (await fetch(dataUrl)).blob();
-    const file = new File([blob], name, { type: "image/png" });
-    uploadFile({ variables: { name, upload: file } }).catch(() => {});
   };
   const handleConnect = useCallback((c:Connection)=>{
     const temp = `t-${c.source}-${c.target}-${Date.now()}` as const;
@@ -832,32 +779,7 @@ export default function MapPage() {
         >
           <Minus size={16} className="text-white" />
         </button>
-        <button
-          onClick={exportJson}
-          className="p-2 bg-orange-500 hover:bg-red-600 rounded"
-        >
-          <Download size={16} className="text-white" />
-        </button>
-        <button
-          onClick={() => importRef.current?.click()}
-          className="p-2 bg-orange-500 hover:bg-red-600 rounded"
-        >
-          <Upload size={16} className="text-white" />
-        </button>
-        <button
-          onClick={exportImage}
-          className="p-2 bg-orange-500 hover:bg-red-600 rounded"
-        >
-          <Camera size={16} className="text-white" />
-        </button>
       </Header>
-      <input
-        type="file"
-        accept="application/json"
-        ref={importRef}
-        onChange={importJson}
-        className="hidden"
-      />
 
       {/* MAIN */}
       <div className="flex flex-1 flex-col sm:flex-row">
@@ -1072,11 +994,7 @@ export default function MapPage() {
         </aside>
 
         {/* CANVAS */}
-        <div
-          className="flex-1 relative overscroll-none"
-          style={{ touchAction: 'none', background: '#2D2D2D' }}
-          ref={flowRef}
-        >
+        <div className="flex-1 relative overscroll-none" style={{ touchAction:'none', background:'#2D2D2D' }}>
           <ReactFlowProvider>
             <ReactFlow
               nodes={nodes}
