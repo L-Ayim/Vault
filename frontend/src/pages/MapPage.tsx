@@ -44,6 +44,7 @@ import {
   MUTATION_CREATE_DIRECT_CHANNEL,
   MUTATION_JOIN_GROUP_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
+  MUTATION_JOIN_GROUP_CHANNEL,
   SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import {
@@ -920,6 +921,12 @@ export default function MapPage() {
                           className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
                         >
                           <MessageCircle className="text-white" size={14} />
+                        </button>
+                        <button
+                          onClick={()=>joinGroupChannel({ variables:{ groupId:g.id } })}
+                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                        >
+                          <MessageCircle className="text-white" size={14}/>
                         </button>
                       </div>
                     </div>

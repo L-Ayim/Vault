@@ -452,7 +452,7 @@ export default function ChatPage() {
                         className="flex-1 px-3 py-2 bg-neutral-700 rounded-md text-sm"
                       />
                       <button
-                        onClick={handleCopyGroup}
+                        onClick={() => handleCopyGroup()}
                         className={`p-2 rounded ${copiedGroup ? "bg-red-600" : "bg-orange-500 hover:bg-orange-600"}`}
                       >
                         <Clipboard size={16} />
