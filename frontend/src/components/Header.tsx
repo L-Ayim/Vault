@@ -29,7 +29,7 @@ export default function Header({ children }: HeaderProps) {
                 <User size={16} />
               </div>
             )}
-            <span className="text-gray-200 hidden sm:block">{user?.username}</span>
+            <span className="text-gray-200">{user?.username}</span>
             <ChevronDown className="text-gray-400" size={16} />
           </Menu.Button>
           <Menu.Items className="absolute right-0 mt-2 w-40 bg-neutral-800 divide-y divide-neutral-700 rounded-md shadow-lg focus:outline-none z-10">

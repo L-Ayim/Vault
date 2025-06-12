@@ -9,7 +9,6 @@ import {
   QUERY_ME,
   MUTATION_UPLOAD_FILE,
   MUTATION_UPDATE_PROFILE,
-  MUTATION_UPDATE_USER,
   MUTATION_DELETE_ACCOUNT,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
@@ -38,21 +37,16 @@ export default function SettingsPage() {
     fetchPolicy: "network-only",
   });
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showAvatarOptions, setShowAvatarOptions] = useState(false);
-  const [newUsername, setNewUsername] = useState<string>("");
-  const [newEmail, setNewEmail] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [uploadFile] = useMutation(MUTATION_UPLOAD_FILE);
-  const [updateProfile, { loading: updating }] = useMutation(MUTATION_UPDATE_PROFILE, {
+  const [updateProfile] = useMutation(MUTATION_UPDATE_PROFILE, {
     onCompleted: async () => {
       setSuccessMsg("Profile updated successfully.");
       await refetch();
-      setAvatarFile(null);
     },
     onError: (err: ApolloError) => {
       setErrorMsg(err.message.replace("GraphQL error: ", ""));
@@ -60,20 +54,6 @@ export default function SettingsPage() {
   });
 
   const { logout } = useAuth();
-
-  const [updateUserMutation, { loading: updatingUser }] = useMutation(
-    MUTATION_UPDATE_USER,
-    {
-      onCompleted: async () => {
-        setSuccessMsg("Account updated successfully.");
-        setNewPassword("");
-        await refetch();
-      },
-      onError: (err: ApolloError) => {
-        setErrorMsg(err.message.replace("GraphQL error: ", ""));
-      },
-    }
-  );
 
   const [deleteAccount] = useMutation(MUTATION_DELETE_ACCOUNT, {
     onCompleted: () => {
@@ -89,10 +69,6 @@ export default function SettingsPage() {
   const email = data?.me.email;
   const username = data?.me.username;
 
-  useEffect(() => {
-    if (username) setNewUsername(username);
-    if (email) setNewEmail(email);
-  }, [username, email]);
 
   // 4) Early loading / error states
   if (loading) {
@@ -110,47 +86,29 @@ export default function SettingsPage() {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    if (!file) return;
     setErrorMsg(null);
     setSuccessMsg(null);
-    let avatarFileId: string | null = null;
-    if (avatarFile) {
-      try {
-        const res = await uploadFile({
-          variables: { name: avatarFile.name, upload: avatarFile },
-        });
-        avatarFileId = res.data.uploadFile.file.id;
-      } catch (err) {
-        setErrorMsg((err as ApolloError).message.replace("GraphQL error: ", ""));
-        return;
-      }
-    }
     try {
-      await updateProfile({
-        variables: { avatarFileId },
+      const res = await uploadFile({
+        variables: { name: file.name, upload: file },
       });
-    } catch {
-      // onError handles message
+      await updateProfile({
+        variables: { avatarFileId: res.data.uploadFile.file.id },
+      });
+      await refetch();
+    } catch (err) {
+      setErrorMsg((err as ApolloError).message.replace("GraphQL error: ", ""));
+    } finally {
+      setShowAvatarOptions(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleAccountSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      await updateUserMutation({
-        variables: {
-          username: newUsername,
-          email: newEmail,
-          password: newPassword || null,
-        },
-      });
-    } catch {
-      // onError handles message
-    }
-  };
 
   const handleRemoveAvatar = async () => {
     setErrorMsg(null);
@@ -199,12 +157,12 @@ export default function SettingsPage() {
                   <img
                     src={profile.avatarUrl}
                     alt="Avatar"
-                    className="h-16 w-16 rounded-full object-cover cursor-pointer"
+                    className="h-16 w-16 rounded-full object-cover cursor-pointer border-2 border-orange-500"
                     onClick={() => setShowAvatarOptions((v) => !v)}
                   />
                 ) : (
                   <div
-                    className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400 cursor-pointer"
+                    className="h-16 w-16 rounded-full bg-neutral-700 flex items-center justify-center text-gray-400 cursor-pointer border-2 border-orange-500"
                     onClick={() => setShowAvatarOptions((v) => !v)}
                   >
                     <User size={32} />
@@ -227,15 +185,12 @@ export default function SettingsPage() {
             )}
             {errorMsg && <p className="text-red-400 mt-4">{errorMsg}</p>}
 
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <form className="space-y-4 mt-4">
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={(e) => {
-                  setAvatarFile(e.target.files ? e.target.files[0] : null);
-                  setShowAvatarOptions(false);
-                }}
+                onChange={handleFileChange}
                 className="hidden"
               />
 
@@ -260,67 +215,18 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={updating}
-                className="px-4 py-2 bg-orange-500 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {updating ? "Saving…" : "Save Changes"}
-              </button>
             </form>
           </section>
 
           <section className="bg-neutral-800/75 p-6 rounded-lg shadow">
-            <h3 className="text-2xl font-medium mb-4">Account Settings</h3>
-
             {successMsg && (
               <p className="text-green-500 mb-2">{successMsg}</p>
             )}
             {errorMsg && <p className="text-red-400 mb-2">{errorMsg}</p>}
 
-            <form onSubmit={handleAccountSubmit} className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm mb-1">Username</label>
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm mb-1">Email</label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm mb-1">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={updatingUser}
-                className="px-4 py-2 bg-orange-500 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {updatingUser ? "Updating…" : "Update Account"}
-              </button>
-            </form>
-
             <button
               onClick={handleDeleteAccount}
-              className="mt-6 px-4 py-2 bg-red-700 rounded-md hover:bg-red-800 transition-colors"
+              className="px-4 py-2 bg-red-700 rounded-md hover:bg-red-800 transition-colors"
             >
               Delete Account
             </button>
