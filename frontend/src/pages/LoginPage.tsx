@@ -30,8 +30,11 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, redirectTo]);
 
   const [tokenAuth, { loading }] = useMutation(MUTATION_TOKEN_AUTH, {
-    onCompleted() {
-      login();
+    onCompleted(data) {
+      const token = data.tokenAuth.token;
+      if (token) {
+        login(token);
+      }
     },
     onError(err) {
       setErrorMsg(err.message.replace("GraphQL error: ", ""));
@@ -64,6 +67,7 @@ export default function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md
+                         focus:outline-none focus:ring-2 focus:ring-red-500"
                          focus:outline-none focus:ring-2 focus:ring-red-500"
               required
             />
