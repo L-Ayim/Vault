@@ -28,7 +28,12 @@ class UpdateProfileTests(TestCase):
     def _info(self):
         from types import SimpleNamespace
 
-        return SimpleNamespace(context=SimpleNamespace(user=self.user))
+        def build_absolute_uri(path=""):
+            return f"http://testserver{path}"
+
+        return SimpleNamespace(
+            context=SimpleNamespace(user=self.user, build_absolute_uri=build_absolute_uri)
+        )
 
     def test_update_profile_fields(self):
         from .schema import UpdateProfile
@@ -44,3 +49,22 @@ class UpdateProfileTests(TestCase):
         self.assertEqual(self.user.profile.avatar_url, "http://example.com/avatar.png")
         self.assertEqual(self.user.profile.bio, "Hello")
         self.assertTrue(self.user.profile.is_public)
+
+    def test_update_profile_with_avatar_file(self):
+        from .schema import UpdateProfile
+        from files.models import File
+        from django.core.files.base import ContentFile
+
+        file = File.objects.create(
+            owner=self.user,
+            name="a.png",
+            upload=ContentFile(b"avatar", "a.png"),
+        )
+
+        UpdateProfile().mutate(
+            self._info(),
+            avatar_file_id=file.id,
+        )
+
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.avatar_file_id, file.id)

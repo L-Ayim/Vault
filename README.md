@@ -29,9 +29,9 @@ The backend is built with Django + Graphene (GraphQL) + MySQL. The frontend uses
 
 ## Features
 
-- **Authentication & Authorization**  
-  - JWT-based login/signup  
-  - Profile (avatar URL, bio, public/private toggle)  
+- **Authentication & Authorization**
+  - JWT-based login/signup
+  - Profile (avatar upload/URL, bio, public/private toggle)
 - **File Management**  
   - Upload new files, view/download versions  
   - Share with users or groups  
