@@ -349,15 +349,6 @@ class UpdateUser(graphene.Mutation):
         return UpdateUser(user=user)
 
 
-class DeleteAccount(graphene.Mutation):
-    ok = graphene.Boolean()
-
-    def mutate(self, info):
-        user = info.context.user
-        if user.is_anonymous:
-            raise GraphQLError("Login required.")
-        user.delete()
-        return DeleteAccount(ok=True)
 
 
 class AccountsMutation(graphene.ObjectType):
@@ -369,4 +360,3 @@ class AccountsMutation(graphene.ObjectType):
     join_group_by_invite = JoinGroupByInvite.Field()
     update_profile       = UpdateProfile.Field()
     update_user          = UpdateUser.Field()
-    delete_account       = DeleteAccount.Field()
