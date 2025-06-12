@@ -11,7 +11,6 @@ interface User {
   profile?: {
     avatarUrl?: string;
     bio?: string;
-    isPublic?: boolean;
   };
 }
 

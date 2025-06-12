@@ -51,7 +51,6 @@ export const QUERY_ME = gql`
       profile {
         avatarUrl
         bio
-        isPublic
       }
     }
   }
@@ -94,7 +93,6 @@ export const QUERY_FRIENDS = gql`
       profile {
         avatarUrl
         bio
-        isPublic
       }
     }
   }
@@ -145,7 +143,6 @@ export const MUTATION_CREATE_USER = gql`
         profile {
           avatarUrl
           bio
-          isPublic
         }
       }
       token
@@ -258,18 +255,15 @@ export const MUTATION_UPDATE_PROFILE = gql`
     $avatarUrl: String
     $avatarFileId: ID
     $bio: String
-    $isPublic: Boolean
   ) {
     updateProfile(
       avatarUrl: $avatarUrl
       avatarFileId: $avatarFileId
       bio: $bio
-      isPublic: $isPublic
     ) {
       profile {
         avatarUrl
         bio
-        isPublic
       }
     }
   }
