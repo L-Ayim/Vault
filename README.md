@@ -158,6 +158,15 @@ export VITE_GRAPHQL_WS_URL=ws://localhost:8000/graphql/
 export CHOKIDAR_USEPOLLING=true
 \`\`\`
 
+### Docker Compose `.env`
+
+The `start-vault.ps1` script writes a `.env` file in the project root. It now
+includes `CSRF_TRUSTED_ORIGINS`, which tells Django which origins are allowed to
+make CSRF-protected requests. By default this is set to
+`http://${HOST_IP}:5173` for local development. Change the value if your
+frontend runs on a different host or port. After editing `.env`, restart Docker
+Compose so the containers pick up the new settings.
+
 ---
 
 ## Getting Started with Docker

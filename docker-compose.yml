@@ -34,6 +34,8 @@ services:
       MYSQL_PASSWORD: s3cr3tpass
       # Forward custom CORS origins to the backend
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      # Forward custom CSRF origins to the backend
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
       # DJANGO_SECRET_KEY, etc. come from backend/.env
     ports:
       - "8000:8000"

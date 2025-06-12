@@ -15,6 +15,7 @@ if (-not $ip) {
 $envLines = @(
     "HOST_IP=${ip}"
     "CORS_ALLOWED_ORIGINS=http://${ip}:5173"
+    "CSRF_TRUSTED_ORIGINS=http://${ip}:5173"
     "VITE_GRAPHQL_URL=http://${ip}:8000/graphql/"
     "VITE_GRAPHQL_WS_URL=ws://${ip}:8000/graphql/"
 )
