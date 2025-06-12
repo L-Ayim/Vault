@@ -9,7 +9,10 @@ import {
   QUERY_ME,
   MUTATION_UPLOAD_FILE,
   MUTATION_UPDATE_PROFILE,
+  MUTATION_UPDATE_USER,
+  MUTATION_DELETE_ACCOUNT,
 } from "../graphql/operations";
+import { useAuth } from "../auth/AuthContext";
 
 interface MeResult {
   me: {
@@ -40,6 +43,9 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [newUsername, setNewUsername] = useState<string>("");
+  const [newEmail, setNewEmail] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,6 +55,32 @@ export default function SettingsPage() {
       setSuccessMsg("Profile updated successfully.");
       await refetch();
       setAvatarFile(null);
+    },
+    onError: (err: ApolloError) => {
+      setErrorMsg(err.message.replace("GraphQL error: ", ""));
+    },
+  });
+
+  const { logout } = useAuth();
+
+  const [updateUserMutation, { loading: updatingUser }] = useMutation(
+    MUTATION_UPDATE_USER,
+    {
+      onCompleted: async () => {
+        setSuccessMsg("Account updated successfully.");
+        setNewPassword("");
+        await refetch();
+      },
+      onError: (err: ApolloError) => {
+        setErrorMsg(err.message.replace("GraphQL error: ", ""));
+      },
+    }
+  );
+
+  const [deleteAccount] = useMutation(MUTATION_DELETE_ACCOUNT, {
+    onCompleted: () => {
+      logout();
+      navigate("/signup");
     },
     onError: (err: ApolloError) => {
       setErrorMsg(err.message.replace("GraphQL error: ", ""));
@@ -65,6 +97,11 @@ export default function SettingsPage() {
       setIsPublic(profile.isPublic);
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (username) setNewUsername(username);
+    if (email) setNewEmail(email);
+  }, [username, email]);
 
   // 4) Early loading / error states
   if (loading) {
@@ -102,6 +139,34 @@ export default function SettingsPage() {
       await updateProfile({
         variables: { avatarFileId, bio, isPublic },
       });
+    } catch {
+      // onError handles message
+    }
+  };
+
+  const handleAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await updateUserMutation({
+        variables: {
+          username: newUsername,
+          email: newEmail,
+          password: newPassword || null,
+        },
+      });
+    } catch {
+      // onError handles message
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("Delete your account permanently?")) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      await deleteAccount();
     } catch {
       // onError handles message
     }
@@ -214,6 +279,62 @@ export default function SettingsPage() {
                 {updating ? "Saving…" : "Save Changes"}
               </button>
             </form>
+          </section>
+
+          <section className="bg-neutral-800/75 p-6 rounded-lg shadow">
+            <h3 className="text-2xl font-medium mb-4">Account Settings</h3>
+
+            {successMsg && (
+              <p className="text-green-500 mb-2">{successMsg}</p>
+            )}
+            {errorMsg && <p className="text-red-400 mb-2">{errorMsg}</p>}
+
+            <form onSubmit={handleAccountSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Username</label>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-700 text-white border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={updatingUser}
+                className="px-4 py-2 bg-orange-500 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {updatingUser ? "Updating…" : "Update Account"}
+              </button>
+            </form>
+
+            <button
+              onClick={handleDeleteAccount}
+              className="mt-6 px-4 py-2 bg-red-700 rounded-md hover:bg-red-800 transition-colors"
+            >
+              Delete Account
+            </button>
           </section>
         </div>
       </main>

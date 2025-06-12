@@ -322,6 +322,47 @@ class UpdateProfile(graphene.Mutation):
         return UpdateProfile(profile=profile)
 
 
+class UpdateUser(graphene.Mutation):
+    """Update the authenticated user's basic fields."""
+
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        username = graphene.String()
+        email = graphene.String()
+        password = graphene.String()
+
+    def mutate(self, info, username=None, email=None, password=None):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        if username is not None and username != user.username:
+            if User.objects.filter(username=username).exists():
+                raise GraphQLError("Username already taken.")
+            user.username = username
+        if email is not None:
+            user.email = email
+        if password is not None:
+            try:
+                validate_password(password, user)
+            except Exception as e:
+                raise GraphQLError(f"Password error: {e}")
+            user.set_password(password)
+        user.save()
+        return UpdateUser(user=user)
+
+
+class DeleteAccount(graphene.Mutation):
+    ok = graphene.Boolean()
+
+    def mutate(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise GraphQLError("Login required.")
+        user.delete()
+        return DeleteAccount(ok=True)
+
+
 class AccountsMutation(graphene.ObjectType):
     create_user          = CreateUser.Field()
     create_friend_invite = CreateFriendInvite.Field()
@@ -330,3 +371,5 @@ class AccountsMutation(graphene.ObjectType):
     create_group         = CreateGroup.Field()
     join_group_by_invite = JoinGroupByInvite.Field()
     update_profile       = UpdateProfile.Field()
+    update_user          = UpdateUser.Field()
+    delete_account       = DeleteAccount.Field()
