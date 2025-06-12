@@ -42,6 +42,7 @@ import {
   MUTATION_SHARE_NODE_WITH_GROUP,
   MUTATION_REVOKE_NODE_SHARE,
   MUTATION_CREATE_DIRECT_CHANNEL,
+  MUTATION_JOIN_GROUP_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
   SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
@@ -58,7 +59,6 @@ import {
   Eye,
   Pen,
   MessageCircle,
-  Share2,
 } from "lucide-react";
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
@@ -115,6 +115,9 @@ export default function MapPage() {
   });
   const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL, {
     onCompleted: res => setChatChannel(res.joinNodeChannel.channel.id),
+  });
+  const [joinGroupChannel] = useMutation(MUTATION_JOIN_GROUP_CHANNEL, {
+    onCompleted: res => setChatChannel(res.joinGroupChannel.channel.id),
   });
 
   // friends
@@ -228,14 +231,6 @@ export default function MapPage() {
     setRemovingSidebarId(null);
   };
 
-  const handleShareGroupClick = async (groupId: string) => {
-    const perm = groupPermMap[groupId] || "R";
-    if (selected.nodes.length === 0) return;
-    await Promise.all(selected.nodes.map(n =>
-      shareNodeWithGroup({ variables:{ nodeId:n.id, groupId, permission: perm } })
-    ));
-    await refetchNodes();
-  };
 
   // long-press drag for touch devices
   type DragItem =
@@ -919,10 +914,12 @@ export default function MapPage() {
                           <Pen className="text-white" size={14}/>
                         </button>
                         <button
-                          onClick={()=>handleShareGroupClick(g.id)}
+                          onClick={() =>
+                            joinGroupChannel({ variables: { groupId: g.id } })
+                          }
                           className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
                         >
-                          <Share2 className="text-white" size={14}/>
+                          <MessageCircle className="text-white" size={14} />
                         </button>
                       </div>
                     </div>
