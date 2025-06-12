@@ -898,6 +898,7 @@ export default function MapPage() {
                           <MessageCircle className="text-white" size={14}/>
                         </button>
                     </div>
+                    </div>
                   );
                 })
               ) : (
