@@ -77,6 +77,7 @@ class ChannelMembership(models.Model):
         User, on_delete=models.CASCADE, related_name="chat_memberships"
     )
     joined_at = models.DateTimeField(auto_now_add=True)
+    last_read_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = (("channel", "user"),)

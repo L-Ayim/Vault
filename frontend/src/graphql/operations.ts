@@ -547,10 +547,17 @@ export const QUERY_MY_CHANNELS = gql`
       id
       name
       channelType
+      unreadCount
       node {
         id
         name
       }
+      group {
+        id
+        name
+      }
+      directUser1 { id username }
+      directUser2 { id username }
       createdAt
     }
   }
@@ -663,6 +670,15 @@ export const MUTATION_SEND_MESSAGE = gql`
         }
         createdAt
       }
+    }
+  }
+`;
+
+// 7) Mark all messages in a channel as read
+export const MUTATION_MARK_CHANNEL_READ = gql`
+  mutation MarkChannelRead($channelId: ID!) {
+    markChannelRead(channelId: $channelId) {
+      ok
     }
   }
 `;
