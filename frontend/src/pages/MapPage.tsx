@@ -28,6 +28,7 @@ import {
   QUERY_MY_FILES,
   QUERY_NODE_FILES,
   QUERY_FRIENDS,
+  QUERY_MY_GROUPS,
   MUTATION_CREATE_NODE,
   MUTATION_RENAME_NODE,
   MUTATION_DELETE_NODE,
@@ -38,6 +39,7 @@ import {
   MUTATION_REMOVE_FILE_FROM_NODE,
   MUTATION_DELETE_FILE,
   MUTATION_SHARE_NODE_WITH_USER,
+  MUTATION_SHARE_NODE_WITH_GROUP,
   MUTATION_REVOKE_NODE_SHARE,
   MUTATION_CREATE_DIRECT_CHANNEL,
   MUTATION_JOIN_NODE_CHANNEL,
@@ -56,6 +58,7 @@ import {
   Eye,
   Pen,
   MessageCircle,
+  Share2,
 } from "lucide-react";
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
@@ -76,7 +79,8 @@ interface EdgeOnNode {
 interface NodeShare {
   id: string;
   permission: "R" | "W";
-  sharedWithUser: { id: string; username: string };
+  sharedWithUser?: { id: string; username: string } | null;
+  sharedWithGroup?: { id: string; name: string } | null;
 }
 interface NodeData {
   id: string;
@@ -92,7 +96,9 @@ interface QueryMyNodesResult { myNodes: NodeData[] }
 interface QueryMyFilesResult {
   myFiles: { id: string; name: string; downloadUrl: string }[];
 }
+interface QueryMyGroupsResult { myGroups: Group[] }
 interface Friend { id: string; username: string }
+interface Group { id: string; name: string }
 
 export default function MapPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -121,6 +127,26 @@ export default function MapPage() {
     variables: { limit: 20, offset: 0 },
     fetchPolicy: "cache-and-network",
   });
+
+  // groups
+  const {
+    data: groupsData,
+    loading: groupsLoading,
+    error: groupsError,
+    refetch: refetchGroups,
+  } = useQuery<QueryMyGroupsResult>(QUERY_MY_GROUPS, {
+    variables: { limit: 20, offset: 0 },
+    fetchPolicy: "cache-and-network",
+  });
+
+  const [groupPermMap, setGroupPermMap] = useState<Record<string, "R" | "W">>({});
+  useEffect(() => {
+    if (groupsData?.myGroups) {
+      const m: Record<string, "R" | "W"> = {};
+      groupsData.myGroups.forEach(g => { m[g.id] = "R" });
+      setGroupPermMap(m);
+    }
+  }, [groupsData]);
 
   // per-friend R/W toggle
   const [friendPermMap, setFriendPermMap] = useState<Record<string, "R" | "W">>({});
@@ -154,8 +180,9 @@ export default function MapPage() {
       refetchNodes();
       refetchFiles();
       refetchFriends();
+      refetchGroups();
     }
-  }, [subData, refetchNodes, refetchFiles, refetchFriends]);
+  }, [subData, refetchNodes, refetchFiles, refetchFriends, refetchGroups]);
 
   // mutations
   const [uploadFile]    = useMutation(MUTATION_UPLOAD_FILE);
@@ -178,7 +205,8 @@ export default function MapPage() {
   const [deleteNode]  = useMutation(MUTATION_DELETE_NODE);
   const [createEdge]  = useMutation(MUTATION_CREATE_EDGE);
   const [deleteEdge]  = useMutation(MUTATION_DELETE_EDGE);
-  const [shareNode]   = useMutation(MUTATION_SHARE_NODE_WITH_USER);
+  const [shareNodeWithUser]   = useMutation(MUTATION_SHARE_NODE_WITH_USER);
+  const [shareNodeWithGroup]  = useMutation(MUTATION_SHARE_NODE_WITH_GROUP);
   const [revokeShare] = useMutation(MUTATION_REVOKE_NODE_SHARE);
 
   // sidebar upload / delete
@@ -200,10 +228,20 @@ export default function MapPage() {
     setRemovingSidebarId(null);
   };
 
+  const handleShareGroupClick = async (groupId: string) => {
+    const perm = groupPermMap[groupId] || "R";
+    if (selected.nodes.length === 0) return;
+    await Promise.all(selected.nodes.map(n =>
+      shareNodeWithGroup({ variables:{ nodeId:n.id, groupId, permission: perm } })
+    ));
+    await refetchNodes();
+  };
+
   // long-press drag for touch devices
   type DragItem =
     | { type: "vault-file"; fileId: string; name: string }
-    | { type: "vault-friend"; friendId: string; name: string; permission: "R" | "W" };
+    | { type: "vault-friend"; friendId: string; name: string; permission: "R" | "W" }
+    | { type: "vault-group"; groupId: string; name: string; permission: "R" | "W" };
   const [touchDrag, setTouchDrag] = useState<DragItem | null>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,6 +274,19 @@ export default function MapPage() {
       setTouchPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     }, 300);
   };
+  const startGroupTouchDrag = (
+    e: React.TouchEvent,
+    groupId: string,
+    name: string,
+    permission: "R" | "W",
+  ) => {
+    e.preventDefault();
+    cancelTouchDrag();
+    dragTimer.current = setTimeout(() => {
+      setTouchDrag({ type: "vault-group", groupId, name, permission });
+      setTouchPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    }, 300);
+  };
 
   useEffect(() => {
     if (!touchDrag) return;
@@ -254,11 +305,19 @@ export default function MapPage() {
         if (nodeId) {
           if (touchDrag.type === "vault-file") {
             await addFileToNode({ variables: { nodeId, fileId: touchDrag.fileId } });
-          } else {
-            await shareNode({
+          } else if (touchDrag.type === "vault-friend") {
+            await shareNodeWithUser({
               variables: {
                 nodeId,
                 userId: touchDrag.friendId,
+                permission: touchDrag.permission,
+              },
+            });
+          } else if (touchDrag.type === "vault-group") {
+            await shareNodeWithGroup({
+              variables: {
+                nodeId,
+                groupId: touchDrag.groupId,
                 permission: touchDrag.permission,
               },
             });
@@ -275,7 +334,7 @@ export default function MapPage() {
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [touchDrag, touchPos, addFileToNode, shareNode]);
+  }, [touchDrag, touchPos, addFileToNode, shareNodeWithUser, shareNodeWithGroup]);
 
   // persist positions
   const getSavedPositions = () => {
@@ -461,10 +520,22 @@ export default function MapPage() {
       if (js) {
         const obj = JSON.parse(js);
         if (obj.type === "vault-friend") {
-          await shareNode({
+          await shareNodeWithUser({
             variables: {
               nodeId: id,
               userId: obj.friendId,
+              permission: obj.permission,
+            },
+          });
+          await Promise.all([refetchNodeFiles(), refetchNodes()]);
+          setDropping(false);
+          return;
+        }
+        if (obj.type === "vault-group") {
+          await shareNodeWithGroup({
+            variables: {
+              nodeId: id,
+              groupId: obj.groupId,
               permission: obj.permission,
             },
           });
@@ -488,7 +559,7 @@ export default function MapPage() {
         await Promise.all([refetchNodeFiles(), refetchFiles(), refetchNodes()]);
       }
       setDropping(false);
-    },[id,shareNode,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
+    },[id,shareNodeWithUser,shareNodeWithGroup,addFileToNode,uploadFile,refetchNodeFiles,refetchFiles]);
 
       const handleBlurOrEnter = (
         e: React.KeyboardEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
@@ -612,7 +683,13 @@ export default function MapPage() {
                     className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-xs text-white"
                   >
                     <div className="flex items-center space-x-1">
-                      <span className="truncate">{share.sharedWithUser.username}</span>
+                      <span className="truncate">
+                        {share.sharedWithUser
+                          ? share.sharedWithUser.username
+                          : share.sharedWithGroup
+                            ? share.sharedWithGroup.name
+                            : "Public"}
+                      </span>
                       {share.permission==="R"
                         ? <Eye size={12} className="text-white"/>
                         : <Pen size={12} className="text-white"/>
@@ -626,7 +703,7 @@ export default function MapPage() {
                     </button>
                   </li>
                 )) : (
-                  <li className="italic text-gray-400 text-xs">Drag friend here</li>
+                  <li className="italic text-gray-400 text-xs">Drag friend or group here</li>
                 )}
               </ul>
             </div>
@@ -787,6 +864,72 @@ export default function MapPage() {
                 })
               ) : (
                 <p className="text-gray-400 text-sm">No friends</p>
+              )}
+
+              {/* Groups */}
+              <div className="mt-6 mb-2">
+                <h2 className="text-sm font-medium text-white">Groups</h2>
+              </div>
+              {groupsLoading ? (
+                <p className="text-gray-400 text-sm">Loading groups…</p>
+              ) : groupsError ? (
+                <p className="text-red-500 text-sm">Error loading groups</p>
+              ) : groupsData?.myGroups.length ? (
+                groupsData.myGroups.map(g => {
+                  const perm = groupPermMap[g.id] || "R";
+                  return (
+                    <div
+                      key={g.id}
+                      draggable
+                      onDragStart={e=>{
+                        e.dataTransfer.effectAllowed = "copy";
+                        e.dataTransfer.setData(
+                          "application/json",
+                          JSON.stringify({
+                            type: "vault-group",
+                            groupId: g.id,
+                            permission: perm
+                          })
+                        );
+                        e.dataTransfer.setDragImage(new Image(),0,0);
+                      }}
+                      onTouchStart={e=>startGroupTouchDrag(e,g.id,g.name,perm)}
+                      onTouchEnd={cancelTouchDrag}
+                      onTouchMove={cancelTouchDrag}
+                      className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
+                    >
+                      <span className="flex-1 text-white truncate">{g.name}</span>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={ev=>{
+                            ev.stopPropagation();
+                            setGroupPermMap(m=>({...m,[g.id]:"R"}));
+                          }}
+                          className={`p-1 rounded ${perm==="R"? "bg-red-600":"bg-neutral-700"}`}
+                        >
+                          <Eye className="text-white" size={14}/>
+                        </button>
+                        <button
+                          onClick={ev=>{
+                            ev.stopPropagation();
+                            setGroupPermMap(m=>({...m,[g.id]:"W"}));
+                          }}
+                          className={`p-1 rounded ${perm==="W"? "bg-red-600":"bg-neutral-700"}`}
+                        >
+                          <Pen className="text-white" size={14}/>
+                        </button>
+                        <button
+                          onClick={()=>handleShareGroupClick(g.id)}
+                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                        >
+                          <Share2 className="text-white" size={14}/>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-gray-400 text-sm">No groups</p>
               )}
             </>
           )}
