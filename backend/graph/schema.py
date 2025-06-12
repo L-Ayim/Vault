@@ -310,6 +310,72 @@ class ShareNodeWithUser(graphene.Mutation):
         return ShareNodeWithUser(share=share)
 
 
+class ShareNodeWithGroup(graphene.Mutation):
+    share = graphene.Field(NodeShareType)
+
+    class Arguments:
+        node_id    = graphene.ID(required=True)
+        group_id   = graphene.ID(required=True)
+        permission = graphene.String(required=True)
+
+    def mutate(self, info, node_id, group_id, permission):
+        user = info.context.user
+        node = Node.objects.filter(pk=node_id, owner=user).first()
+        if not node:
+            raise GraphQLError("Only owner can share.")
+        share, _ = NodeShare.objects.update_or_create(
+            node=node,
+            shared_with_group_id=group_id,
+            defaults={
+                "permission": permission,
+                "is_public": False,
+                "shared_with_user": None,
+            },
+        )
+        return ShareNodeWithGroup(share=share)
+
+
+class MakeNodePublic(graphene.Mutation):
+    share = graphene.Field(NodeShareType)
+
+    class Arguments:
+        node_id    = graphene.ID(required=True)
+        permission = graphene.String(required=False, default_value=NodeShare.READ)
+
+    def mutate(self, info, node_id, permission=NodeShare.READ):
+        user = info.context.user
+        node = Node.objects.filter(pk=node_id, owner=user).first()
+        if not node:
+            raise GraphQLError("Only owner can share.")
+        share, _ = NodeShare.objects.update_or_create(
+            node=node,
+            is_public=True,
+            defaults={
+                "permission": permission,
+                "shared_with_user": None,
+                "shared_with_group": None,
+            },
+        )
+        return MakeNodePublic(share=share)
+
+
+class UpdateNodeShare(graphene.Mutation):
+    share = graphene.Field(NodeShareType)
+
+    class Arguments:
+        share_id   = graphene.ID(required=True)
+        permission = graphene.String(required=True)
+
+    def mutate(self, info, share_id, permission):
+        user = info.context.user
+        share = NodeShare.objects.filter(pk=share_id, node__owner=user).first()
+        if not share:
+            raise GraphQLError("Share not found or you are not the owner.")
+        share.permission = permission
+        share.save()
+        return UpdateNodeShare(share=share)
+
+
 class RevokeNodeShare(graphene.Mutation):
     ok = graphene.Boolean()
 
@@ -337,6 +403,9 @@ class GraphMutation(graphene.ObjectType):
     createEdge          = CreateEdge.Field()
     deleteEdge          = DeleteEdge.Field()
     shareNodeWithUser   = ShareNodeWithUser.Field()
+    shareNodeWithGroup  = ShareNodeWithGroup.Field()
+    makeNodePublic      = MakeNodePublic.Field()
+    updateNodeShare     = UpdateNodeShare.Field()
     revokeNodeShare     = RevokeNodeShare.Field()
 
     # no-op field to keep schema happy
