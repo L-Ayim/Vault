@@ -13,17 +13,21 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [active, setActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const videoRef = useRef(false);
 
   async function getMedia(video: boolean): Promise<MediaStream | null> {
     if (!navigator.mediaDevices?.getUserMedia) {
       console.error("Media devices API unavailable");
+      setError("Media devices API unavailable");
       return null;
     }
     try {
+      setError(null);
       return await navigator.mediaDevices.getUserMedia({ audio: true, video });
     } catch (err) {
       console.error("Error accessing user media", err);
+      setError("Permission denied for camera/microphone");
       return null;
     }
   }
@@ -37,6 +41,7 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
     setLocalStream(null);
     setRemoteStream(null);
     setActive(false);
+    setError(null);
   }, [remoteStream]);
 
   const startCall = useCallback(async (video: boolean) => {
@@ -106,5 +111,5 @@ export default function useWebRTC(sendSignal: (msg: SignalMessage) => void) {
 
   useEffect(() => () => cleanup(), [cleanup]);
 
-  return { localStream, remoteStream, startCall, handleSignal, endCall, active, isVideo: videoRef.current };
+  return { localStream, remoteStream, startCall, handleSignal, endCall, active, isVideo: videoRef.current, error };
 }

@@ -17,6 +17,7 @@ interface Message {
   id: string;
   sender: { id: string; username: string };
   text: string | null;
+  channel: { id: string; name: string };
   createdAt: string;
 }
 
@@ -46,6 +47,7 @@ export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
     endCall,
     active,
     isVideo,
+    error: mediaError,
   } = useWebRTC((msg: SignalMessage) =>
     sendSignalMutation({ variables: { channelId, text: CALL_PREFIX + JSON.stringify(msg) } })
   );
@@ -223,6 +225,9 @@ export default function ChatBox({ channelId, onClose, title }: ChatBoxProps) {
           onEnd={endCall}
           video={isVideo}
         />
+      )}
+      {mediaError && (
+        <p className="text-red-400 text-center text-xs mt-2">{mediaError}</p>
       )}
     </div>
   );
