@@ -34,6 +34,24 @@ import {
 import useWebRTC, { type SignalMessage } from "../hooks/useWebRTC";
 import CallPanel from "../components/CallPanel";
 
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    resolve();
+  });
+}
+
 interface Friend { id: string; username: string }
 interface Group { id: string; name: string; inviteCode: string }
 interface NodeItem { id: string; name: string }
@@ -302,14 +320,14 @@ export default function ChatPage() {
 
   const handleCopyFriend = () => {
     if(!inviteCode) return;
-    navigator.clipboard.writeText(`${window.location.origin}/chat?invite=${inviteCode}`)
+    copyToClipboard(`${window.location.origin}/chat?invite=${inviteCode}`)
       .then(()=>{ setCopiedFriend(true); setTimeout(()=>setCopiedFriend(false),2000) });
   };
 
   const handleCopyGroup = (code?: string, id?: string) => {
     const invite = code || groupInviteCode;
     if(!invite) return;
-    navigator.clipboard.writeText(`${window.location.origin}/chat?group=${invite}`)
+    copyToClipboard(`${window.location.origin}/chat?group=${invite}`)
       .then(()=>{
         if(id){
           setCopiedGroupId(id);
