@@ -16,21 +16,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
   const [createUser, { loading }] = useMutation(MUTATION_CREATE_USER, {
-    onCompleted(data) {
-      const token = data.createUser.token;
-      if (token) {
-        login(token);
-      }
+    onCompleted() {
+      login();
+      navigate("/dashboard", { replace: true });
     },
     onError(err) {
       setErrorMsg(err.message.replace("GraphQL error: ", ""));
