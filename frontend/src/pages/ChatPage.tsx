@@ -20,6 +20,7 @@ import {
   SUBSCRIPTION_NODE_UPDATES,
 } from "../graphql/operations";
 import { useAuth } from "../auth/AuthContext";
+import usePersistentState from "../hooks/usePersistentState";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import {
@@ -68,7 +69,10 @@ export default function ChatPage() {
   const navigate = useNavigate();
 
   // panel open state
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = usePersistentState<boolean>(
+    "chat-panel-open",
+    true
+  );
 
   // chat UI state
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);

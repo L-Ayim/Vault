@@ -10,6 +10,7 @@ interface User {
   email: string;
   profile?: {
     avatarUrl?: string;
+    preferences?: Record<string, unknown>;
   };
 }
 

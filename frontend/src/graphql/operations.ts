@@ -50,6 +50,7 @@ export const QUERY_ME = gql`
       email
       profile {
         avatarUrl
+        preferences
       }
     }
   }
@@ -252,6 +253,17 @@ export const MUTATION_UPDATE_PROFILE = gql`
     updateProfile(avatarUrl: $avatarUrl, avatarFileId: $avatarFileId) {
       profile {
         avatarUrl
+      }
+    }
+  }
+`;
+
+// 13) Update UI preferences stored on the profile
+export const MUTATION_UPDATE_PREFERENCES = gql`
+  mutation UpdatePreferences($preferences: GenericScalar!) {
+    updateProfile(preferences: $preferences) {
+      profile {
+        preferences
       }
     }
   }

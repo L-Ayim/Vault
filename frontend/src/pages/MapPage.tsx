@@ -63,6 +63,7 @@ import {
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
+import usePersistentState from "../hooks/usePersistentState";
 
 interface FileOnNode {
   note: string;
@@ -101,7 +102,10 @@ interface Friend { id: string; username: string }
 interface Group { id: string; name: string }
 
 export default function MapPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = usePersistentState<boolean>(
+    "sidebar-collapsed",
+    false
+  );
 
   // set page title
   useEffect(() => {
@@ -459,9 +463,16 @@ export default function MapPage() {
 
   // custom node
   function CustomNode({ id, data, selected }: NodeProps<{
-    id:string; name:string; description:string; files:string[]; shares:NodeShare[]
+    id: string;
+    name: string;
+    description: string;
+    files: string[];
+    shares: NodeShare[];
   }>) {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = usePersistentState<boolean>(
+      `node-collapsed-${id}`,
+      false
+    );
     const [nm, setNm] = useState(data.name);
     const [desc, setDesc] = useState(data.description);
     const [dropping, setDropping] = useState(false);

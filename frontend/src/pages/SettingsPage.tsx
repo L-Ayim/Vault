@@ -17,6 +17,7 @@ interface MeResult {
     email: string;
     profile: {
       avatarUrl: string | null;
+      preferences?: Record<string, unknown>;
     };
   };
 }
