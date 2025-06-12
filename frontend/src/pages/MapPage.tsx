@@ -110,27 +110,9 @@ export default function MapPage() {
 
   // chat overlay
   const [chatInfo, setChatInfo] = useState<{ id: string; name: string } | null>(null);
-  const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL, {
-    onCompleted: res =>
-      setChatInfo({
-        id: res.createDirectChannel.channel.id,
-        name: res.createDirectChannel.channel.name,
-      }),
-  });
-  const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL, {
-    onCompleted: res =>
-      setChatInfo({
-        id: res.joinNodeChannel.channel.id,
-        name: res.joinNodeChannel.channel.name,
-      }),
-  });
-  const [joinGroupChannel] = useMutation(MUTATION_JOIN_GROUP_CHANNEL, {
-    onCompleted: res =>
-      setChatInfo({
-        id: res.joinGroupChannel.channel.id,
-        name: res.joinGroupChannel.channel.name,
-      }),
-  });
+  const [createDirectChannel] = useMutation(MUTATION_CREATE_DIRECT_CHANNEL);
+  const [joinNodeChannel] = useMutation(MUTATION_JOIN_NODE_CHANNEL);
+  const [joinGroupChannel] = useMutation(MUTATION_JOIN_GROUP_CHANNEL);
 
   // friends
   const {
@@ -602,7 +584,15 @@ export default function MapPage() {
             <span className="text-white text-sm truncate mr-2">{data.name}</span>
             <div className="flex items-center space-x-1">
               <button
-                onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+                onClick={() =>
+                  joinNodeChannel({ variables: { nodeId: id } })
+                    .then(res =>
+                      setChatInfo({
+                        id: res.data.joinNodeChannel.channel.id,
+                        name: data.name,
+                      })
+                    )
+                }
                 className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
               >
                 <MessageCircle size={12} className="text-white" />
@@ -618,7 +608,15 @@ export default function MapPage() {
         ) : (
           <div className="flex items-start justify-between">
             <button
-              onClick={() => joinNodeChannel({ variables: { nodeId: id } })}
+              onClick={() =>
+                joinNodeChannel({ variables: { nodeId: id } })
+                  .then(res =>
+                    setChatInfo({
+                      id: res.data.joinNodeChannel.channel.id,
+                      name: data.name,
+                    })
+                  )
+              }
               className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
             >
               <MessageCircle size={12} className="text-white" />
@@ -886,14 +884,19 @@ export default function MapPage() {
                           <Pen className="text-white" size={14}/>
                         </button>
                         <button
-                          onClick={()=>{
-                            createDirectChannel({ variables:{ withUserId:f.id } });
-                          }}
+                          onClick={() =>
+                            createDirectChannel({ variables: { withUserId: f.id } })
+                              .then(res =>
+                                setChatInfo({
+                                  id: res.data.createDirectChannel.channel.id,
+                                  name: f.username,
+                                })
+                              )
+                          }
                           className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
                         >
                           <MessageCircle className="text-white" size={14}/>
                         </button>
-                      </div>
                     </div>
                   );
                 })
@@ -956,6 +959,12 @@ export default function MapPage() {
                         <button
                           onClick={() =>
                             joinGroupChannel({ variables: { groupId: g.id } })
+                              .then(res =>
+                                setChatInfo({
+                                  id: res.data.joinGroupChannel.channel.id,
+                                  name: g.name,
+                                })
+                              )
                           }
                           className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
                         >
