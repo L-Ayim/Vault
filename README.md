@@ -1,28 +1,35 @@
 # Vault
 
-Vault is a simple tool for storing files and arranging them on an interactive map.
+Vault is a file repository that lets you place files on an interactive map. The backend exposes a GraphQL API powered by Django while the frontend is built with React and Vite. The entire stack can be launched locally using Docker Compose.
 
-## Stack
+## Features
 
-- Django + Graphene + MySQL
-- React + TypeScript + Vite + Tailwind
-- Docker Compose
+- Store and organize files
+- Interactive map interface
+- Real-time updates via WebSockets
+- GraphQL API with JWT authentication
 
-## Quick Start
+## Technology Stack
 
-1. Install Docker Desktop.
-2. **Windows**:
+- **Backend**: Django, Graphene, MySQL
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Infrastructure**: Docker Compose
+
+## Getting Started
+
+1. Install **Docker Desktop**.
+2. On **Windows**, run:
    ```powershell
    ./start-vault.ps1
    ```
-   The script creates a `.env` file and launches the containers.
-3. **macOS/Linux**:
+   This script creates an `.env` file and starts the containers.
+3. On **macOS/Linux**, run:
    ```bash
    docker compose up --build
    ```
-4. Open the printed address in your browser.
+4. Once the services have started, open the printed address in your browser to access the UI.
 
-To wipe all data and start fresh:
+To reset the environment and remove uploaded data:
 ```powershell
 ./reset-vault.ps1
 ```
