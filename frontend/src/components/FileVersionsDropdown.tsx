@@ -11,6 +11,7 @@ interface Version {
   id: string;
   uploadUrl: string;
   note: string | null;
+  fileName: string;
   createdAt: string;
 }
 
@@ -61,7 +62,7 @@ export default function FileVersionsDropdown({ fileId }: Props) {
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {v.note?.trim() || "Untitled version"}
+                    {v.note?.trim() || v.fileName || "Untitled version"}
                   </p>
                   <p className="text-xs text-gray-400">
                     {new Date(v.createdAt).toLocaleString()}

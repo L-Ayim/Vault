@@ -1,5 +1,6 @@
 # files/schema.py
 
+import os
 import graphene
 from graphql import GraphQLError
 from graphene_django import DjangoObjectType
@@ -13,9 +14,14 @@ from accounts.schema import UserType
 # ── Types ────────────────────────────────────────────────────────────────────
 
 class VersionType(DjangoObjectType):
+    file_name = graphene.String()
+
     class Meta:
         model = Version
         fields = ("id", "upload", "note", "created_at")
+
+    def resolve_file_name(self, info):
+        return os.path.basename(self.upload.name)
 
 
 class FileShareType(DjangoObjectType):

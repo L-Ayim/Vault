@@ -359,6 +359,7 @@ export const QUERY_FILE_VERSIONS = gql`
       id
       uploadUrl: upload
       note
+      fileName
       createdAt
     }
   }
@@ -389,6 +390,7 @@ export const MUTATION_UPLOAD_FILE = gql`
         id
         uploadUrl: upload
         note
+        fileName
         createdAt
       }
     }
@@ -403,6 +405,7 @@ export const MUTATION_ADD_FILE_VERSION = gql`
         id
         uploadUrl: upload
         note
+        fileName
         createdAt
       }
     }

@@ -35,6 +35,7 @@ interface UploadFileResult {
       id: string;
       uploadUrl: string;
       note: string | null;
+      fileName: string;
       createdAt: string;
     };
   };
