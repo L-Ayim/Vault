@@ -35,6 +35,7 @@ import {
   MUTATION_CREATE_EDGE,
   MUTATION_DELETE_EDGE,
   MUTATION_UPLOAD_FILE,
+  MUTATION_ADD_FILE_VERSION,
   MUTATION_ADD_FILE_TO_NODE,
   MUTATION_REMOVE_FILE_FROM_NODE,
   MUTATION_DELETE_FILE,
@@ -63,6 +64,7 @@ import {
 import "reactflow/dist/style.css";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox"; // your reusable chat overlay
+import FileVersionsDropdown from "../components/FileVersionsDropdown";
 import usePersistentState from "../hooks/usePersistentState";
 
 interface FileOnNode {
@@ -187,6 +189,7 @@ export default function MapPage() {
 
   // mutations
   const [uploadFile]    = useMutation(MUTATION_UPLOAD_FILE);
+  const [addFileVersion] = useMutation(MUTATION_ADD_FILE_VERSION);
   const [addFileToNode] = useMutation(MUTATION_ADD_FILE_TO_NODE);
   const [removeFile]    = useMutation(MUTATION_REMOVE_FILE_FROM_NODE);
   const [deleteFile]    = useMutation(MUTATION_DELETE_FILE);
@@ -212,16 +215,44 @@ export default function MapPage() {
 
   // sidebar upload / delete
   const [sidebarUploading, setSidebarUploading] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<"new" | "version">("new");
+  const [sidebarTargetId, setSidebarTargetId] = useState<string>("");
+  const [sidebarFiles, setSidebarFiles] = useState<File[]>([]);
   const [removingSidebarId, setRemovingSidebarId] = useState<string|null>(null);
+  const handleSidebarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    setSidebarFiles(files ? Array.from(files) : []);
+  };
+  const handleSidebarUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sidebarFiles.length) return;
+    setSidebarUploading(true);
+    for (const f of sidebarFiles) {
+      if (sidebarMode === "new") {
+        await uploadFile({ variables: { name: f.name, upload: f } });
+      } else if (sidebarTargetId) {
+        await addFileVersion({ variables: { fileId: sidebarTargetId, upload: f } });
+      }
+    }
+    setSidebarFiles([]);
+    await refetchFiles();
+    setSidebarUploading(false);
+  };
   const handleSidebarDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
     if (!files.length) return;
     setSidebarUploading(true);
-    for (const f of files) await uploadFile({ variables:{ name:f.name, upload:f } });
+    for (const f of files) {
+      if (sidebarMode === "new") {
+        await uploadFile({ variables: { name: f.name, upload: f } });
+      } else if (sidebarTargetId) {
+        await addFileVersion({ variables: { fileId: sidebarTargetId, upload: f } });
+      }
+    }
     await refetchFiles();
     setSidebarUploading(false);
-  },[uploadFile,refetchFiles]);
+  },[uploadFile,addFileVersion,refetchFiles,sidebarMode,sidebarTargetId]);
   const handleSidebarDelete = async (fileId:string) => {
     setRemovingSidebarId(fileId);
     await deleteFile({ variables:{ fileId } });
@@ -804,41 +835,83 @@ export default function MapPage() {
               {/* Files */}
               <h2 className="text-sm font-medium mb-2 text-white">Files</h2>
               {sidebarUploading && <div className="h-1 w-full bg-orange-500 animate-pulse mb-2"/>}
+              <form onSubmit={handleSidebarUpload} className="mb-2 space-y-2 flex flex-col">
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleSidebarFileChange}
+                  className="file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
+                />
+                <div className="flex space-x-2">
+                  <select
+                    value={sidebarMode}
+                    onChange={e=>setSidebarMode(e.target.value as "new" | "version")}
+                    className="px-2 py-1 bg-neutral-700 text-white rounded-md"
+                  >
+                    <option value="new">New file</option>
+                    <option value="version">Add version</option>
+                  </select>
+                  {sidebarMode === "version" && (
+                    <select
+                      value={sidebarTargetId}
+                      onChange={e=>setSidebarTargetId(e.target.value)}
+                      className="flex-1 px-2 py-1 bg-neutral-700 text-white rounded-md"
+                    >
+                      <option value="">Select file…</option>
+                      {filesData?.myFiles.map(f=>(
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={
+                      sidebarUploading ||
+                      sidebarFiles.length === 0 ||
+                      (sidebarMode === "version" && !sidebarTargetId)
+                    }
+                    className="px-3 py-1 bg-orange-500 rounded text-white disabled:opacity-50"
+                  >
+                    Upload
+                  </button>
+                </div>
+              </form>
               <div className="max-h-48 overflow-y-auto space-y-1">
               {filesData?.myFiles.map(f=>(
-                <div
-                  key={f.id}
-                  draggable
-                  onDragStart={e=>{
-                    e.dataTransfer.effectAllowed = "copy";
-                    e.dataTransfer.setData(
-                      "application/json",
-                      JSON.stringify({ type: "vault-file", fileId: f.id })
-                    );
-                    // hide native ghost image
-                    e.dataTransfer.setDragImage(new Image(), 0, 0);
-                  }}
-                  onTouchStart={e=>startFileTouchDrag(e,f.id,f.name)}
-                  onTouchEnd={cancelTouchDrag}
-                  onTouchMove={cancelTouchDrag}
-                  className="flex items-center justify-between px-2 py-1 mb-1 bg-orange-500 rounded cursor-grab"
-                >
-                  <div className="flex-1 flex items-center space-x-2 overflow-hidden">
-                    <FileText size={14} className="text-white flex-shrink-0"/>
-                    <span className="truncate text-white text-sm">{f.name}</span>
+                <div key={f.id} className="mb-1 space-y-1">
+                  <div
+                    draggable
+                    onDragStart={e=>{
+                      e.dataTransfer.effectAllowed = "copy";
+                      e.dataTransfer.setData(
+                        "application/json",
+                        JSON.stringify({ type: "vault-file", fileId: f.id })
+                      );
+                      e.dataTransfer.setDragImage(new Image(), 0, 0);
+                    }}
+                    onTouchStart={e=>startFileTouchDrag(e,f.id,f.name)}
+                    onTouchEnd={cancelTouchDrag}
+                    onTouchMove={cancelTouchDrag}
+                    className="flex items-center justify-between px-2 py-1 bg-orange-500 rounded cursor-grab"
+                  >
+                    <div className="flex-1 flex items-center space-x-2 overflow-hidden">
+                      <FileText size={14} className="text-white flex-shrink-0"/>
+                      <span className="truncate text-white text-sm">{f.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <a href={f.downloadUrl} download className="p-1 bg-neutral-700 hover:bg-red-600 rounded">
+                        <Download size={14} className="text-white"/>
+                      </a>
+                      <button
+                        onClick={()=>handleSidebarDelete(f.id)}
+                        disabled={removingSidebarId===f.id}
+                        className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                      >
+                        <Trash2 size={14} className="text-white"/>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <a href={f.downloadUrl} download className="p-1 bg-neutral-700 hover:bg-red-600 rounded">
-                      <Download size={14} className="text-white"/>
-                    </a>
-                    <button
-                      onClick={()=>handleSidebarDelete(f.id)}
-                      disabled={removingSidebarId===f.id}
-                      className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                    >
-                      <Trash2 size={14} className="text-white"/>
-                    </button>
-                  </div>
+                  <FileVersionsDropdown fileId={f.id} />
                 </div>
               ))}
               </div>

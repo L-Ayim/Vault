@@ -6,9 +6,16 @@ import Header from "../components/Header";
 import {
   QUERY_MY_FILES,
   MUTATION_UPLOAD_FILE,
+  MUTATION_ADD_FILE_VERSION,
   MUTATION_DELETE_FILE,
 } from "../graphql/operations";
-import { FileText, Trash2, UploadCloud, Download } from "lucide-react";
+import {
+  FileText,
+  Trash2,
+  UploadCloud,
+  Download,
+} from "lucide-react";
+import FileVersionsDropdown from "../components/FileVersionsDropdown";
 
 interface FileNode {
   id: string;
@@ -57,9 +64,16 @@ export default function StoragePage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadMode, setUploadMode] = useState<"new" | "version">("new");
+  const [targetFileId, setTargetFileId] = useState<string>("");
 
   // 5) Single-file upload mutation
   const [uploadFileMutation] = useMutation<UploadFileResult>(MUTATION_UPLOAD_FILE, {
+    onError: (err: ApolloError) => {
+      setUploadError(err.message);
+    },
+  });
+  const [addFileVersionMutation] = useMutation(MUTATION_ADD_FILE_VERSION, {
     onError: (err: ApolloError) => {
       setUploadError(err.message);
     },
@@ -92,12 +106,18 @@ export default function StoragePage() {
 
     for (const file of selectedFiles) {
       try {
-        await uploadFileMutation({
-          variables: {
-            name: file.name,
-            upload: file,
-          },
-        });
+        if (uploadMode === "new") {
+          await uploadFileMutation({
+            variables: {
+              name: file.name,
+              upload: file,
+            },
+          });
+        } else if (targetFileId) {
+          await addFileVersionMutation({
+            variables: { fileId: targetFileId, upload: file },
+          });
+        }
       } catch {
         // onError above already recorded the message
       }
@@ -166,9 +186,35 @@ export default function StoragePage() {
               onChange={handleFileChange}
               className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-700 file:text-white hover:file:bg-neutral-600"
             />
+            <select
+              value={uploadMode}
+              onChange={(e) => setUploadMode(e.target.value as "new" | "version")}
+              className="px-2 py-2 bg-neutral-700 text-white rounded-md"
+            >
+              <option value="new">New file</option>
+              <option value="version">Add version</option>
+            </select>
+            {uploadMode === "version" && (
+              <select
+                value={targetFileId}
+                onChange={(e) => setTargetFileId(e.target.value)}
+                className="px-2 py-2 bg-neutral-700 text-white rounded-md flex-1"
+              >
+                <option value="">Select file…</option>
+                {allFiles.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
-              disabled={uploading || selectedFiles.length === 0}
+              disabled={
+                uploading ||
+                selectedFiles.length === 0 ||
+                (uploadMode === "version" && !targetFileId)
+              }
               className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-orange-500 text-white rounded-md font-medium shadow hover:bg-red-600 active:bg-red-700 transition-colors duration-200 disabled:opacity-50"
             >
               <UploadCloud size={20} className="text-white" />
@@ -225,24 +271,25 @@ export default function StoragePage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <a
-                      href={file.downloadUrl}
-                      download={file.name}
-                      className="flex items-center px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 transition-colors duration-200"
-                    >
-                      <Download size={16} className="text-white" />
-                      <span className="text-sm text-white">Download</span>
-                    </a>
-                    <button
-                      onClick={() => handleDelete(file.id)}
-                      className="flex items-center space-x-1 px-3 py-1 bg-red-600 rounded-md hover:bg-red-700 active:bg-red-800 transition-colors duration-200"
-                    >
-                      <Trash2 size={16} className="text-white" />
-                      <span className="text-sm text-white">Delete</span>
-                    </button>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <a
+                    href={file.downloadUrl}
+                    download={file.name}
+                    className="flex items-center px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 transition-colors duration-200"
+                  >
+                    <Download size={16} className="text-white" />
+                    <span className="text-sm text-white">Download</span>
+                  </a>
+                  <button
+                    onClick={() => handleDelete(file.id)}
+                    className="flex items-center space-x-1 px-3 py-1 bg-red-600 rounded-md hover:bg-red-700 active:bg-red-800 transition-colors duration-200"
+                  >
+                    <Trash2 size={16} className="text-white" />
+                    <span className="text-sm text-white">Delete</span>
+                  </button>
                 </div>
+                <FileVersionsDropdown fileId={file.id} />
+              </div>
               ))}
 
               {/* Pagination Controls */}
