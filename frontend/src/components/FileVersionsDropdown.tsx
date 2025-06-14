@@ -38,7 +38,7 @@ export default function FileVersionsDropdown({ fileId }: Props) {
     <div className="mt-1">
       <button
         onClick={toggle}
-        className="flex items-center text-sm text-orange-300 focus:outline-none"
+        className="flex items-center text-sm text-orange-300 hover:text-orange-400 focus:outline-none"
       >
         {open ? (
           <ChevronDown size={14} className="text-orange-300" />
@@ -48,7 +48,7 @@ export default function FileVersionsDropdown({ fileId }: Props) {
         <span className="ml-1">Versions</span>
       </button>
       {open && (
-        <ul className="mt-1 space-y-1 pl-4">
+        <ul className="mt-1 space-y-2 pl-5 sm:pl-6">
           {loading ? (
             <li className="text-gray-400 text-sm">Loading…</li>
           ) : versions.length === 0 ? (
@@ -57,15 +57,20 @@ export default function FileVersionsDropdown({ fileId }: Props) {
             versions.map((v) => (
               <li
                 key={v.id}
-                className="flex items-center justify-between bg-neutral-700 px-2 py-1 rounded text-sm"
+                className="flex items-center justify-between bg-neutral-800/60 px-3 py-2 rounded"
               >
-                <span className="truncate">
-                  {new Date(v.createdAt).toLocaleString()}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {v.note?.trim() || "Untitled version"}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(v.createdAt).toLocaleString()}
+                  </p>
+                </div>
                 <a
                   href={v.uploadUrl}
                   download
-                  className="p-1 bg-neutral-800 hover:bg-red-600 rounded"
+                  className="ml-2 shrink-0 p-1 bg-neutral-700 hover:bg-red-600 rounded"
                 >
                   <Download size={12} className="text-white" />
                 </a>
