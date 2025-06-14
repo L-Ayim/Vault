@@ -9,7 +9,7 @@ interface HeaderProps { children?: React.ReactNode }
 export default function Header({ children }: HeaderProps) {
   const { user, logout } = useAuth();
   return (
-    <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-neutral-800/75 backdrop-blur-sm">
+    <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-neutral-800/75 backdrop-blur-sm relative z-20">
       <Link to="/dashboard" className="text-2xl font-extrabold flex items-center">
         <span className="text-red-500">V</span>
         <span className="text-white">ault</span>

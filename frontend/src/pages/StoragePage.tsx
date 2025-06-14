@@ -255,42 +255,44 @@ export default function StoragePage() {
               {paginatedFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="flex flex-col sm:flex-row justify-between bg-neutral-800/75 p-4 rounded-md shadow"
+                  className="bg-neutral-800/75 p-4 rounded-md shadow space-y-2"
                 >
-                  <div className="flex items-center space-x-3">
-                    <FileText size={24} className="text-orange-500" />
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-3">
+                      <FileText size={24} className="text-orange-500" />
+                      <div>
+                        <a
+                          href={file.downloadUrl}
+                          download={file.name}
+                          className="text-lg font-medium hover:underline"
+                        >
+                          {file.name}
+                        </a>
+                        <p className="text-sm text-gray-300">
+                          {new Date(file.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
                       <a
                         href={file.downloadUrl}
                         download={file.name}
-                        className="text-lg font-medium hover:underline"
+                        className="flex items-center px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 transition-colors duration-200"
                       >
-                        {file.name}
+                        <Download size={16} className="text-white" />
+                        <span className="text-sm text-white">Download</span>
                       </a>
-                      <p className="text-sm text-gray-300">
-                        {new Date(file.createdAt).toLocaleString()}
-                      </p>
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-red-600 rounded-md hover:bg-red-700 active:bg-red-800 transition-colors duration-200"
+                      >
+                        <Trash2 size={16} className="text-white" />
+                        <span className="text-sm text-white">Delete</span>
+                      </button>
                     </div>
                   </div>
-                <div className="flex items-center space-x-2">
-                  <a
-                    href={file.downloadUrl}
-                    download={file.name}
-                    className="flex items-center px-3 py-1 bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 transition-colors duration-200"
-                  >
-                    <Download size={16} className="text-white" />
-                    <span className="text-sm text-white">Download</span>
-                  </a>
-                  <button
-                    onClick={() => handleDelete(file.id)}
-                    className="flex items-center space-x-1 px-3 py-1 bg-red-600 rounded-md hover:bg-red-700 active:bg-red-800 transition-colors duration-200"
-                  >
-                    <Trash2 size={16} className="text-white" />
-                    <span className="text-sm text-white">Delete</span>
-                  </button>
+                  <FileVersionsDropdown fileId={file.id} />
                 </div>
-                <FileVersionsDropdown fileId={file.id} />
-              </div>
               ))}
 
               {/* Pagination Controls */}
