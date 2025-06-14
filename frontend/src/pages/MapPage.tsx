@@ -714,32 +714,32 @@ export default function MapPage() {
               <ul className="space-y-1 mt-1 max-h-32 overflow-auto">
                   {nfData?.nodeFiles?.length > 0 ? (
                     nfData.nodeFiles.map((nf: FileOnNode) => (
-                    <li
-                      key={nf.file.id}
-                      className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-sm text-white"
-                    >
-                      <div className="flex-1 flex items-center space-x-1 overflow-hidden">
-                        <FileText size={12} className="flex-shrink-0"/>
-                        <span className="truncate">{nf.file.name}</span>
+                    <li key={nf.file.id} className="space-y-1">
+                      <div className="flex items-center justify-between px-1 py-0.5 bg-orange-500 rounded text-sm text-white">
+                        <div className="flex-1 flex items-center space-x-1 overflow-hidden">
+                          <FileText size={12} className="flex-shrink-0"/>
+                          <span className="truncate">{nf.file.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <a
+                            href={nf.file.uploadUrl}
+                            download
+                            className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                          >
+                            <Download size={12} className="text-white"/>
+                          </a>
+                          <button
+                            onClick={()=>
+                              removeFile({ variables:{ nodeId:id, fileId:nf.file.id }})
+                                .then(()=>refetchNodeFiles())
+                            }
+                            className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
+                          >
+                            <Minus size={12} className="text-white"/>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <a
-                          href={nf.file.uploadUrl}
-                          download
-                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                        >
-                          <Download size={12} className="text-white"/>
-                        </a>
-                        <button
-                          onClick={()=>
-                            removeFile({ variables:{ nodeId:id, fileId:nf.file.id }})
-                              .then(()=>refetchNodeFiles())
-                          }
-                          className="p-1 bg-neutral-700 hover:bg-red-600 rounded"
-                        >
-                          <Minus size={12} className="text-white"/>
-                        </button>
-                      </div>
+                      <FileVersionsDropdown fileId={nf.file.id} />
                     </li>
                   ))
                 ) : (
